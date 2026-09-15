@@ -34,7 +34,10 @@ KNOWN_OUIS = {
     "EC:B5:FA": "Philips Lighting (Hue Bridge)",
     "BC:07:1D": "Arcadyan / Altice (Router Gateway)",
     "90:CA:FA": "Google / Android TV (Chromecast)",
-    "BC:24:11": "Google LLC (Nest / Chromecast)",
+    "BC:24:11": "Proxmox Server Solutions (Home Assistant)",
+    "E8:AA:CB": "Samsung Electronics",
+    "60:74:F4": "Samsung Electronics",
+    "E8:50:8B": "Samsung Electronics",
 
     # =========================================================================
     # 1. SMART HOME & IOT
@@ -271,7 +274,6 @@ KNOWN_OUIS = {
     "90:F6:52": "TP-Link Corporation",
     "98:DA:C4": "TP-Link Corporation",
     "A4:2B:B0": "TP-Link Corporation",
-    "A4:F6:E8": "TP-Link Corporation",
     "B0:95:75": "TP-Link Corporation",
     "C0:C9:E3": "TP-Link Corporation",
     "CC:32:E5": "TP-Link Corporation",
@@ -921,8 +923,34 @@ def is_randomized_mac(mac: str) -> bool:
             return False
     return False
 
-def lookup_vendor(mac: str) -> str:
-    """Finds the vendor name for a MAC address using OUI prefix matching and random MAC detection."""
+def fetch_online_oui(mac: str) -> str:
+    """Dynamically queries online IEEE OUI API to resolve uncataloged MAC addresses with fast timeout."""
+    import urllib.request
+    import json
+    norm = normalize_mac(mac).upper()
+    if not norm or len(norm) < 8:
+        return ""
+    prefix = norm[:8]
+    clean_prefix = prefix.replace(":", "")
+    try:
+        req = urllib.request.Request(
+            f"https://api.maclookup.app/v2/macs/{clean_prefix}",
+            headers={"User-Agent": "NetPulse-Agent/2.0"}
+        )
+        with urllib.request.urlopen(req, timeout=1.8) as resp:
+            if resp.status == 200:
+                data = json.loads(resp.read().decode("utf-8"))
+                if data.get("success") and data.get("company"):
+                    company = data.get("company").strip()
+                    if company:
+                        KNOWN_OUIS[prefix] = company
+                        return company
+    except Exception:
+        pass
+    return ""
+
+def lookup_vendor(mac: str, allow_online: bool = True) -> str:
+    """Finds the vendor name for a MAC address using OUI prefix matching, online API fallback, and random MAC detection."""
     norm = normalize_mac(mac).upper()
     if not norm or norm == "FF:FF:FF:FF:FF:FF":
         return "Broadcast"
@@ -936,11 +964,17 @@ def lookup_vendor(mac: str) -> str:
     if is_randomized_mac(norm):
         return "Dispositivo Privado (MAC Aleatório / iOS / Android)"
 
+    # Dynamic IEEE lookup fallback
+    if allow_online:
+        online_vendor = fetch_online_oui(norm)
+        if online_vendor:
+            return online_vendor
+
     return "Desconhecido"
 
-def classify_device(ip: str, mac: str, hostname: str, vendor: str, open_ports: list = None, is_gateway: bool = False) -> str:
+def classify_device(ip: str, mac: str, hostname: str, vendor: str, open_ports: list = None, is_gateway: bool = False, custom_name: str = "") -> str:
     """
-    Categorizes the device type based on network role, vendor, hostname, and open ports.
+    Categorizes the device type based on network role, vendor, hostname, custom_name, and open ports.
     Available categories:
     - 'router': Router, Gateway, Switch, Access Point
     - 'mobile': Smartphone, Tablet (iPhone, iPad, Galaxy, etc.)
@@ -953,51 +987,51 @@ def classify_device(ip: str, mac: str, hostname: str, vendor: str, open_ports: l
     """
     h_lower = (hostname or "").lower()
     v_lower = (vendor or "").lower()
+    n_lower = (custom_name or "").lower()
+    combined = f"{h_lower} {v_lower} {n_lower}"
     open_ports = open_ports or []
 
     # 1. Router / Gateway & Network Infrastructure
-    if is_gateway or ip.endswith(".1") or "router" in h_lower or "gateway" in h_lower or "altice" in v_lower or "sagemcom" in v_lower or "arcadyan" in v_lower or "tp-link" in v_lower or "ubiquiti" in v_lower or "netgear" in v_lower or "asus" in v_lower or "mikrotik" in v_lower or "fritz!box" in v_lower or "draytek" in v_lower or "cisco" in v_lower or "linksys" in v_lower or "d-link" in v_lower or "technicolor" in v_lower or "vantiva" in v_lower:
+    if is_gateway or ip.endswith(".1") or "router" in combined or "gateway" in combined or "altice" in v_lower or "sagemcom" in v_lower or "arcadyan" in v_lower or "tp-link" in v_lower or "ubiquiti" in v_lower or "netgear" in v_lower or "asus" in v_lower or "mikrotik" in v_lower or "fritz!box" in v_lower or "draytek" in v_lower or "cisco" in v_lower or "linksys" in v_lower or "d-link" in v_lower or "technicolor" in v_lower or "vantiva" in v_lower:
         return "router"
 
     # 2. Gaming Consoles
-    if "playstation" in v_lower or "xbox" in v_lower or "nintendo" in v_lower or "steam deck" in v_lower or "valve" in v_lower or "playstation" in h_lower or "switch" in h_lower:
+    if "playstation" in combined or "xbox" in combined or "nintendo" in combined or "steam deck" in combined or "switch" in combined:
         return "gaming"
 
     # 3. Printers
-    if "printer" in h_lower or "epson" in v_lower or "canon" in v_lower or "brother" in v_lower or "hp inc" in v_lower or 9100 in open_ports or 631 in open_ports:
+    if "printer" in combined or "impressora" in combined or "epson" in v_lower or "canon" in v_lower or "brother" in v_lower or "hp inc" in v_lower or 9100 in open_ports or 631 in open_ports:
         return "printer"
 
-    # 4. IoT & Smart Home (Amazon Echo / Alexa, Espressif, Philips Hue, Shelly, Tuya, IKEA, Aqara, Ring, Wyze)
-    if "amazon" in v_lower or "alexa" in h_lower or "echo" in h_lower or "echo" in v_lower or "espressif" in v_lower or "iot" in v_lower or "hue" in v_lower or "philips lighting" in v_lower or "shelly" in v_lower or "shelly" in h_lower or "allterco" in v_lower or "tasmota" in h_lower or "sonoff" in h_lower or "tuya" in v_lower or "ikea" in v_lower or "aqara" in v_lower or "ring" in v_lower or "blink" in v_lower or "wyze" in v_lower or "tado" in v_lower or "netatmo" in v_lower or "withings" in v_lower or 1883 in open_ports:
-        return "iot"
-
-    # 5. Smart TV, Áudio & Media Streaming
-    if "tv" in h_lower or "bravia" in h_lower or "webos" in h_lower or "chromecast" in v_lower or "chromecast" in h_lower or "firetv" in h_lower or "roku" in v_lower or "apple tv" in h_lower or "shield" in v_lower or "formuler" in v_lower or "aloys" in v_lower or "sonos" in v_lower or "bose" in v_lower or "yamaha" in v_lower or "denon" in v_lower or "marantz" in v_lower:
+    # 4. Smart TV, Áudio & Media Streaming
+    if "tv" in combined or "smart tv" in combined or "bravia" in combined or "webos" in combined or "chromecast" in combined or "firetv" in combined or "roku" in combined or "apple tv" in combined or "shield" in combined or "formuler" in combined or "aloys" in combined or "sonos" in combined or "bose" in combined or "yamaha" in combined or "denon" in combined or "marantz" in combined or 8001 in open_ports:
         return "tv_media"
 
+    # 5. IoT & Smart Home (Home Assistant, Amazon Echo / Alexa, Espressif, Philips Hue, Shelly, Tuya, IKEA, Aqara, Ring, Wyze, Robot Vacuums)
+    if "home assistant" in combined or "hass" in combined or "aspirador" in combined or "vacuum" in combined or "robot" in combined or "amazon" in v_lower or "alexa" in combined or "echo" in combined or "espressif" in v_lower or "iot" in combined or "hue" in combined or "philips lighting" in v_lower or "shelly" in combined or "allterco" in v_lower or "tasmota" in combined or "sonoff" in combined or "tuya" in combined or "ikea" in combined or "aqara" in combined or "ring" in combined or "blink" in combined or "wyze" in combined or "tado" in combined or "netatmo" in combined or "withings" in combined or 1883 in open_ports or 8123 in open_ports:
+        return "iot"
+
     # 6. Mobile devices vs Computers (Apple, Samsung, etc.)
-    if "iphone" in h_lower or "ipad" in h_lower:
+    if "iphone" in combined or "ipad" in combined:
         return "mobile"
-    if "macbook" in h_lower or "mac-mini" in h_lower or "imac" in h_lower:
+    if "macbook" in combined or "mac-mini" in combined or "imac" in combined:
         return "computer"
 
     if "apple" in v_lower:
-        # Default Apple device heuristic
         return "mobile"
 
     if "samsung" in v_lower:
-        if "tv" in h_lower:
+        if "tv" in combined:
             return "tv_media"
         return "mobile"
 
     if "xiaomi" in v_lower or "huawei" in v_lower or "oneplus" in v_lower or "oppo" in v_lower or "motorola" in v_lower:
         return "mobile"
 
-    if "intel" in v_lower or "vmware" in v_lower or "synology" in v_lower or "qnap" in v_lower or "lenovo" in v_lower or "dell" in v_lower or "acer" in v_lower or "msi" in v_lower or "micro-star" in v_lower or "raspberry pi" in v_lower or "ixsystems" in v_lower or "truenas" in v_lower or 22 in open_ports or 3389 in open_ports or 445 in open_ports:
+    if "intel" in v_lower or "vmware" in v_lower or "synology" in v_lower or "qnap" in v_lower or "lenovo" in v_lower or "dell" in v_lower or "acer" in v_lower or "msi" in v_lower or "micro-star" in v_lower or "raspberry pi" in v_lower or "ixsystems" in v_lower or "truenas" in v_lower or "proxmox" in v_lower or 22 in open_ports or 3389 in open_ports or 445 in open_ports:
         return "computer"
 
     if is_randomized_mac(mac):
-        # Most randomized MACs on home Wi-Fi are modern smartphones (iOS Private Wi-Fi / Android)
         return "mobile"
 
     return "unknown"

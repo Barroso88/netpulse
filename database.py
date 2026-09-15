@@ -226,20 +226,45 @@ def cleanup_and_realign_devices(conn):
         cursor.execute("DELETE FROM devices WHERE ip LIKE '172.%' OR mac LIKE '02:42:%'")
         cursor.execute("DELETE FROM alerts WHERE device_ip LIKE '172.%' OR device_mac LIKE '02:42:%'")
 
-        # 2. Re-align vendor & classification for all devices
-        cursor.execute("SELECT id, ip, mac, hostname, vendor, device_type FROM devices")
+        # 2. Re-align vendor & classification for all devices with self-healing conflict resolution
+        cursor.execute("SELECT id, ip, mac, hostname, custom_name, vendor, device_type FROM devices")
         all_devs = cursor.fetchall()
         for d in all_devs:
             mac = d["mac"]
-            curr_vendor = d["vendor"]
+            curr_vendor = d["vendor"] or ""
             curr_type = d["device_type"]
+            name = (d["custom_name"] or "").strip()
+            name_lower = name.lower()
+            vendor_lower = curr_vendor.lower()
 
             expected_vendor = lookup_vendor(mac)
-            if expected_vendor and expected_vendor != "Desconhecido" and expected_vendor != curr_vendor:
-                new_type = classify_device(d["ip"], mac, d["hostname"], expected_vendor)
+            should_update = False
+            new_vendor = curr_vendor
+            new_type = curr_type
+
+            if expected_vendor and expected_vendor not in ("Desconhecido", "Broadcast") and expected_vendor != curr_vendor:
+                should_update = True
+                new_vendor = expected_vendor
+            elif "samsung" in name_lower and "samsung" not in vendor_lower:
+                should_update = True
+                new_vendor = "Samsung Electronics"
+            elif "formuler" in name_lower and "aloys" not in vendor_lower and "formuler" not in vendor_lower:
+                should_update = True
+                new_vendor = "Aloys, Inc (Box Formuler IPTV)"
+            elif "apple" in name_lower and "apple" not in vendor_lower:
+                should_update = True
+                new_vendor = "Apple, Inc."
+            elif "home assistant" in name_lower and "google" in vendor_lower:
+                should_update = True
+                new_vendor = "Proxmox Server Solutions (Home Assistant)"
+
+            # Recalculate target device type
+            target_type = classify_device(d["ip"], mac, d["hostname"], new_vendor, custom_name=name)
+
+            if should_update or target_type != curr_type:
                 cursor.execute(
                     "UPDATE devices SET vendor = ?, device_type = ? WHERE id = ?",
-                    (expected_vendor, new_type if (curr_type in ("unknown", "mobile") and new_type == "tv_media") else curr_type, d["id"])
+                    (new_vendor, target_type, d["id"])
                 )
         conn.commit()
     except Exception as e:

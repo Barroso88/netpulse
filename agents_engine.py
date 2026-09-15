@@ -290,16 +290,84 @@ class AgentsEngine:
     # AGENT 5: BRAND & VISUAL IDENTITY STYLIST AGENT
     # -------------------------------------------------------------------------
     def _mission_brand_stylist(self, now_str):
+        from oui_database import lookup_vendor, classify_device
         devices = database.get_all_devices()
         total = len(devices)
         
+        corrected_count = 0
+        
+        # Self-healing cross-validation: Detect brand/vendor/OUI discrepancies and heal them
+        for d in devices:
+            dev_id = d["id"]
+            ip = d.get("ip", "")
+            mac = d.get("mac", "")
+            name = (d.get("custom_name") or "").strip()
+            curr_vendor = (d.get("vendor") or "").strip()
+            curr_type = d.get("device_type", "unknown")
+            name_lower = name.lower()
+            vendor_lower = curr_vendor.lower()
+            
+            # Authoritative OUI lookup
+            authoritative_vendor = lookup_vendor(mac)
+            should_update = False
+            new_vendor = curr_vendor
+            new_type = curr_type
+            reason = ""
+
+            # Check 1: Authoritative OUI differs from current vendor
+            if authoritative_vendor and authoritative_vendor not in ("Desconhecido", "Broadcast") and authoritative_vendor != curr_vendor:
+                should_update = True
+                new_vendor = authoritative_vendor
+                reason = f"OUI {mac[:8]} verificado como '{authoritative_vendor}'"
+
+            # Check 2: Obvious Custom Name vs Vendor semantic conflict (e.g. Samsung vs Philips)
+            elif "samsung" in name_lower and "samsung" not in vendor_lower:
+                should_update = True
+                new_vendor = "Samsung Electronics"
+                new_type = "tv_media" if ("tv" in name_lower or "smart" in name_lower) else "mobile"
+                reason = f"Nome '{name}' em conflito com '{curr_vendor}'"
+            elif "formuler" in name_lower and "aloys" not in vendor_lower and "formuler" not in vendor_lower:
+                should_update = True
+                new_vendor = "Aloys, Inc (Box Formuler IPTV)"
+                new_type = "tv_media"
+                reason = f"Box IPTV Formuler identificada em '{name}'"
+            elif "apple" in name_lower and "apple" not in vendor_lower:
+                should_update = True
+                new_vendor = "Apple, Inc."
+                new_type = "tv_media" if "apple tv" in name_lower else ("computer" if "mac" in name_lower else "mobile")
+                reason = f"Dispositivo Apple identificado em '{name}'"
+            elif "home assistant" in name_lower and "google" in vendor_lower:
+                should_update = True
+                new_vendor = "Proxmox Server Solutions (Home Assistant)"
+                new_type = "iot"
+                reason = "Home Assistant em ambiente virtualizado detetado"
+
+            if should_update:
+                new_type = classify_device(ip, mac, d.get("hostname", ""), new_vendor, custom_name=name)
+                
+                # Update DB
+                conn = database.get_db_connection()
+                cur = conn.cursor()
+                cur.execute("UPDATE devices SET vendor = ?, device_type = ? WHERE id = ?", (new_vendor, new_type, dev_id))
+                conn.commit()
+                conn.close()
+                
+                corrected_count += 1
+                database.log_agent_activity(
+                    "brand_stylist",
+                    "WARN",
+                    f"🔍 Inconsistência corrigida no IP {ip} ({mac}): {reason}. Fabricante corrigido para '{new_vendor}'."
+                )
+
+        # Refresh devices after healing
+        devices = database.get_all_devices()
         known_brands = [
             "home assistant", "raspberry", "nvidia", "truenas", "unraid",
             "sonoff", "tuya", "xiaomi", "samsung", "amazon", "philips",
             "google", "apple", "playstation", "msi", "huawei", "intel",
             "asus", "tp-link", "meo", "altice", "arcadyan", "router principal", "lg", "espressif",
             "sonos", "nintendo", "synology", "shelly", "dell", "ubiquiti",
-            "hp", "formuler", "printer"
+            "hp", "formuler", "printer", "proxmox"
         ]
         
         branded_count = 0
@@ -311,7 +379,6 @@ class AgentsEngine:
             combined = f"{name} {vendor} {d.get('hostname') or ''}".lower()
             
             matched = False
-            # Check name first
             if name:
                 for b in known_brands:
                     if b in name:
@@ -326,18 +393,19 @@ class AgentsEngine:
                         detected_brands.add(b.title())
                         break
                 
-        brands_summary = ", ".join(list(detected_brands)[:7]) if detected_brands else "Hardware Diverso"
-        database.log_agent_activity(
-            "brand_stylist",
-            "INFO",
-            f"Identidade visual: {branded_count}/{total} dispositivos sincronizados com marcas oficiais ({brands_summary}). Logos vetoriais autênticos carregados."
-        )
+        brands_summary = ", ".join(list(detected_brands)[:8]) if detected_brands else "Hardware Diverso"
+        status_msg = f"Auditoria de marcas: {branded_count}/{total} sincronizados ({brands_summary})."
+        if corrected_count > 0:
+            status_msg += f" 🛠️ {corrected_count} inconsistências corrigidas autonomamente."
+            
+        database.log_agent_activity("brand_stylist", "INFO", status_msg)
         
         stats = {
             "total_devices": total,
             "branded_devices": branded_count,
             "coverage_pct": round((branded_count / max(1, total)) * 100, 1),
             "brands_detected": len(detected_brands),
+            "auto_corrections": corrected_count,
             "render_mode": "Cores Originais (Sem Margens/Caixas)"
         }
         database.update_agent_config("brand_stylist", last_run=now_str, stats=stats)
