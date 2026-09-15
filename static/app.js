@@ -767,7 +767,7 @@ function renderDevices() {
       }
 
       return `
-        <tr class="device-row ${cat.colorClass} hover:bg-slate-900/60 transition group border-b border-darkborder/50">
+        <tr class="device-row ${cat.colorClass} hover:bg-slate-900/60 transition group">
           <td class="py-3.5 px-4 relative">
             <div class="device-row-indicator"></div>
             <div class="flex items-center gap-3 pl-1">
@@ -862,7 +862,7 @@ function renderDevices() {
       const openPorts = Array.isArray(d.open_ports) ? d.open_ports : [];
 
       return `
-        <div class="device-card ${cat.colorClass} p-5 space-y-4">
+        <div class="device-card ${cat.colorClass} p-4 sm:p-5 space-y-3.5">
           <!-- Card Header -->
           <div class="flex items-start justify-between gap-2">
             <div class="flex items-center gap-3 min-w-0">
