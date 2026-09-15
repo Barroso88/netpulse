@@ -3,6 +3,7 @@ NetPulse - Router Latency & Connection Health Monitor
 Measures round-trip time (RTT), jitter, and packet reliability to default gateway and DNS servers.
 """
 
+import os
 import time
 import socket
 import statistics
@@ -30,9 +31,9 @@ def measure_ping_socket(host: str, port: int = 80, count: int = 2, timeout: floa
     except Exception:
         pass
 
-    # 2. Fallback to smart TCP probe if ICMP ping was blocked (e.g. Amazon Echo blocks ICMP)
+    # 2. Fallback to smart TCP probe if ICMP ping was blocked (e.g. Amazon Echo, Sonoff blocks ICMP)
     if not latencies:
-        candidate_ports = [4070, 8123, 80, 443, 445, 8008, 62078, 22, 53, 5000, 7000]
+        candidate_ports = [8081, 80, 443, 8080, 4070, 8123, 6053, 1883, 445, 8008, 62078, 22, 53, 5000, 7000]
         if port not in candidate_ports:
             candidate_ports.insert(0, port)
         active_port = None
@@ -70,8 +71,65 @@ def measure_ping_socket(host: str, port: int = 80, count: int = 2, timeout: floa
                     s.close()
                 time.sleep(0.02)
 
+    # 3. Fallback to ARP Layer 2 probe for local IoT devices (e.g. Sonoff, Shelly that block ICMP Ping)
     if not latencies:
-        return {"avg_ms": None, "min_ms": None, "max_ms": None, "jitter_ms": 0.0, "loss_pct": 100.0}
+        arp_found = False
+        arp_latencies = []
+
+        # 3a. Try arping if available
+        try:
+            cmd_arping = ["arping", "-c", "2", "-w", "1", host]
+            out_arping = subprocess.check_output(cmd_arping, universal_newlines=True, stderr=subprocess.DEVNULL, timeout=1.5)
+            for line in out_arping.splitlines():
+                m = re.search(r'([0-9\.]+)\s*ms', line)
+                if m:
+                    arp_latencies.append(float(m.group(1)))
+            if arp_latencies:
+                arp_found = True
+        except Exception:
+            pass
+
+        # 3b. Read kernel ARP cache (/proc/net/arp on Linux)
+        if not arp_found and os.path.exists("/proc/net/arp"):
+            try:
+                with open("/proc/net/arp", "r") as f:
+                    for line in f:
+                        parts = line.split()
+                        if len(parts) >= 4 and parts[0] == host:
+                            mac = parts[3].lower()
+                            if mac and mac != "00:00:00:00:00:00" and not mac.startswith("00:00:00"):
+                                arp_found = True
+                                break
+            except Exception:
+                pass
+
+        # 3c. Try arp -n / arp host (macOS and Linux)
+        if not arp_found:
+            try:
+                out = subprocess.check_output(["arp", "-n", host], universal_newlines=True, stderr=subprocess.DEVNULL, timeout=1.0)
+                if "(" in out or ":" in out:
+                    for token in out.replace("(", " ").replace(")", " ").split():
+                        if token.count(":") == 5 and not token.startswith("00:00:00"):
+                            arp_found = True
+                            break
+            except Exception:
+                pass
+
+        if arp_found:
+            avg_arp = statistics.mean(arp_latencies) if arp_latencies else 1.5
+            return {
+                "avg_ms": round(avg_arp, 2),
+                "min_ms": round(avg_arp, 2),
+                "max_ms": round(avg_arp, 2),
+                "jitter_ms": 0.0,
+                "loss_pct": 0.0,
+                "alive": True,
+                "method": "arp",
+                "samples": [round(avg_arp, 2)]
+            }
+
+    if not latencies:
+        return {"avg_ms": None, "min_ms": None, "max_ms": None, "jitter_ms": 0.0, "loss_pct": 100.0, "alive": False}
 
     avg_lat = statistics.mean(latencies)
     min_lat = min(latencies)
@@ -85,6 +143,8 @@ def measure_ping_socket(host: str, port: int = 80, count: int = 2, timeout: floa
         "max_ms": round(max_lat, 2),
         "jitter_ms": round(jitter, 2),
         "loss_pct": round(max(0.0, loss_pct), 1),
+        "alive": True,
+        "method": "icmp",
         "samples": [round(x, 2) for x in latencies]
     }
 

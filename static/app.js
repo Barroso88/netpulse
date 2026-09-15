@@ -1034,8 +1034,9 @@ async function pingModalDevice() {
     const valBox = document.getElementById("m-dev-ping-val");
     if (resultBox && valBox) {
       resultBox.classList.remove("hidden");
-      if (data.ping && data.ping.alive) {
-        valBox.textContent = `${data.ping.avg_ms} ms (Dispositivo Ligado & Operacional)`;
+      if (data.ping && (data.ping.alive || data.ping.avg_ms !== null)) {
+        const methodTag = data.ping.method === 'arp' ? ' (Via Deteção ARP / Dispositivo IoT Ativo)' : ' (Dispositivo Ligado & Operacional)';
+        valBox.textContent = `${data.ping.avg_ms} ms${methodTag}`;
         valBox.className = "text-emerald-400 font-bold";
         dev.status = 'online';
         dev.last_seen = new Date().toISOString();

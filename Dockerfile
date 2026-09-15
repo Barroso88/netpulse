@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     iproute2 \
     net-tools \
     iputils-ping \
+    iputils-arping \
     procps \
     curl \
     ca-certificates \
