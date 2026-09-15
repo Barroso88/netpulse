@@ -176,8 +176,16 @@ class NetPulseHandler(http.server.SimpleHTTPRequestHandler):
         # Serve static frontend files
         if path == "/" or path == "/index.html":
             return self.serve_file(os.path.join(STATIC_DIR, "index.html"), "text/html")
+        elif path == "/favicon.ico":
+            return self.serve_file(os.path.join(STATIC_DIR, "icon.png"), "image/png")
+        elif path in ("/icon.svg", "/static/icon.svg"):
+            return self.serve_file(os.path.join(STATIC_DIR, "icon.svg"), "image/svg+xml")
+        elif path in ("/icon.png", "/static/icon.png"):
+            return self.serve_file(os.path.join(STATIC_DIR, "icon.png"), "image/png")
         else:
             rel_path = path.lstrip("/")
+            if rel_path.startswith("static/"):
+                rel_path = rel_path[len("static/"):]
             file_path = os.path.join(STATIC_DIR, rel_path)
             if os.path.exists(file_path) and os.path.isfile(file_path):
                 mime, _ = mimetypes.guess_type(file_path)

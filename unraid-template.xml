@@ -13,7 +13,7 @@
   <Category>Network:Management Network:Other</Category>
   <WebUI>http://[IP]:[PORT:8888]</WebUI>
   <TemplateURL/>
-  <Icon>https://raw.githubusercontent.com/Barroso88/netpulse/main/static/icon.svg</Icon>
+  <Icon>https://raw.githubusercontent.com/Barroso88/netpulse/main/static/icon.png</Icon>
   <ExtraParams/>
   <PostArgs/>
   <CPUset/>
