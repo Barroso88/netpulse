@@ -7,7 +7,7 @@ let state = {
   devices: [],
   networkInfo: { gateway_ip: "192.168.1.1", local_ip: "127.0.0.1", interface: "en0" },
   activeTab: "devices",
-  viewMode: (window.innerWidth < 768) ? "grid" : (localStorage.getItem("netpulse_view_mode") || "grid"), // 'grid' | 'table'
+  viewMode: "grid",
   sortColumn: "ip",
   sortDirection: "asc",
   selectedCategory: "all",
@@ -383,22 +383,9 @@ function switchTab(tabId) {
   if (window.lucide) lucide.createIcons();
 }
 
-// Toggle View Mode (Table vs Grid)
+// View Mode Helper
 function setViewMode(mode) {
-  state.viewMode = mode;
-  try {
-    localStorage.setItem("netpulse_view_mode", mode);
-  } catch (e) {}
-
-  const btnTable = document.getElementById("btn-view-table");
-  const btnGrid = document.getElementById("btn-view-grid");
-  const tableContainer = document.getElementById("container-table-view");
-  const gridContainer = document.getElementById("container-grid-view");
-
-  if (btnTable) btnTable.classList.toggle("bg-slate-800", mode === "table");
-  if (btnGrid) btnGrid.classList.toggle("bg-slate-800", mode === "grid");
-  if (tableContainer) tableContainer.classList.toggle("hidden", mode !== "table");
-  if (gridContainer) gridContainer.classList.toggle("hidden", mode !== "grid");
+  state.viewMode = "grid";
   renderDevices();
 }
 
@@ -739,114 +726,7 @@ function renderDevices() {
     emptyState.classList.toggle("hidden", filtered.length > 0);
   }
 
-  // 1. Table View
-  const tbody = document.getElementById("devices-tbody");
-  if (tbody) {
-    tbody.innerHTML = filtered.map(d => {
-      const cat = CATEGORIES[d.device_type] || CATEGORIES.unknown;
-      const brand = getDeviceBrand(d);
-      const isGateway = (d.ip === state.networkInfo.gateway_ip);
-      const isSelf = (d.ip === state.networkInfo.local_ip);
-      const displayName = d.custom_name || d.hostname || (isGateway ? "Router Gateway" : (isSelf ? "Este Computador" : d.vendor || "Dispositivo de Rede"));
-      
-      const newBadge = d.is_new ? `<span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 text-[10px] font-bold border border-amber-500/30 animate-pulse">NOVO</span>` : '';
-      const trustedBadge = d.is_trusted ? `<i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400" title="Dispositivo Confiável"></i>` : '';
-      
-      // Open ports pills
-      const openPorts = Array.isArray(d.open_ports) ? d.open_ports : [];
-      let portsHtml = "";
-      if (openPorts.length > 0) {
-        portsHtml = openPorts.slice(0, 4).map(p => `
-          <span class="inline-flex items-center px-1.5 py-0.5 rounded bg-cyan-950/80 text-cyan-300 text-[10px] font-mono border border-cyan-800/60 whitespace-nowrap">${p.port} ${escapeHtml(p.service || '')}</span>
-        `).join(" ");
-        if (openPorts.length > 4) {
-          portsHtml += ` <span class="text-[10px] text-slate-400 whitespace-nowrap">+${openPorts.length - 4}</span>`;
-        }
-      } else {
-        portsHtml = `<span class="text-slate-500 text-[11px] italic">Nenhum scan</span>`;
-      }
-
-      return `
-        <tr class="device-row ${cat.colorClass} hover:bg-slate-900/60 transition group">
-          <td class="py-3.5 px-4 relative">
-            <div class="device-row-indicator"></div>
-            <div class="flex items-center gap-3 pl-1">
-              <div class="category-avatar !w-8 !h-8" title="Marca: ${brand.name}">
-                <div class="w-6 h-6 flex items-center justify-center">
-                  ${brand.svg}
-                </div>
-              </div>
-              <div>
-                <div class="flex items-center gap-1.5">
-                  <span class="font-bold text-white tracking-tight">${escapeHtml(displayName)}</span>
-                  ${newBadge}
-                  ${trustedBadge}
-                </div>
-                <div class="text-[11px] text-slate-400 flex items-center gap-2">
-                  <span>${d.hostname ? escapeHtml(d.hostname) : 'Sem hostname DNS'}</span>
-                  ${isGateway ? '<span class="text-[10px] text-cyan-400 font-bold uppercase">(Gateway)</span>' : ''}
-                  ${isSelf ? '<span class="text-[10px] text-emerald-400 font-bold uppercase">(Esta Máquina)</span>' : ''}
-                </div>
-              </div>
-            </div>
-          </td>
-
-          <td class="py-3.5 px-4 font-mono font-semibold text-cyan-300">
-            <button onclick="copyToClipboard('${d.ip}', 'IP')" class="copyable-badge text-cyan-300" title="Clique para copiar IP">
-              <span>${maskIp(d.ip)}</span>
-              <i data-lucide="copy" class="w-3 h-3 copy-icon text-cyan-400"></i>
-            </button>
-          </td>
-
-          <td class="py-3.5 px-4 font-mono text-slate-300 text-[11px]">
-            <button onclick="copyToClipboard('${d.mac.toUpperCase()}', 'MAC')" class="copyable-badge text-slate-300" title="Clique para copiar MAC">
-              <span>${maskMac(d.mac.toUpperCase())}</span>
-              <i data-lucide="copy" class="w-3 h-3 copy-icon text-slate-400"></i>
-            </button>
-          </td>
-
-          <td class="py-3.5 px-4">
-            <span class="text-slate-200 font-medium">${escapeHtml(d.vendor || 'Desconhecido')}</span>
-          </td>
-
-          <td class="py-3.5 px-4">
-            ${getCategoryBadge(d.device_type)}
-          </td>
-
-          <td class="py-3.5 px-4 min-w-[140px]">
-            <div class="flex flex-wrap items-center gap-1.5 max-w-[220px]">
-              ${portsHtml}
-            </div>
-          </td>
-
-          <td class="py-3 px-4 text-right whitespace-nowrap">
-            <div class="flex flex-col items-end gap-1.5">
-              ${d.is_new ? `
-                <button onclick="trustDevice(${d.id})" title="Reconhecer / Confiar" class="px-2.5 py-0.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-semibold text-[11px] border border-amber-500/40 transition whitespace-nowrap shadow-sm">
-                  Reconhecer
-                </button>
-              ` : ''}
-              <div class="flex items-center justify-end gap-1.5">
-                <button onclick="pingDevice(${d.id}, '${d.ip}', this)" title="Testar Ping" class="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-cyan-400 border border-slate-800 transition text-[11px] font-mono">
-                  <i data-lucide="zap" class="w-3.5 h-3.5"></i>
-                </button>
-
-                <button onclick="scanDevicePorts(${d.id}, '${d.ip}')" title="Scan de Portas" class="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-cyan-400 border border-slate-800 transition">
-                  <i data-lucide="shield" class="w-3.5 h-3.5"></i>
-                </button>
-
-                <button onclick="openEditModal(${d.id})" title="Editar Detalhes" class="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 transition">
-                  <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
-                </button>
-              </div>
-            </div>
-          </td>
-        </tr>
-      `;
-    }).join("");
-  }
-
-  // 2. Grid View (Isolated Cards)
+  // Render Isolated Button-Cards
   const grid = document.getElementById("container-grid-view");
   if (grid) {
     grid.innerHTML = filtered.map(d => {
