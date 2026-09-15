@@ -111,6 +111,43 @@ def refresh_arp_cache(subnet_prefix: str, max_workers: int = 40):
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         list(executor.map(probe_host_silent, ips))
 
+def is_valid_lan_device(ip: str, mac: str, iface: str, gateway_ip: str, local_ip: str) -> bool:
+    """Filters out Docker virtual networks, multicast, loopback, and keeps only home LAN devices."""
+    if not mac or mac == "00:00:00:00:00:00" or mac == "ff:ff:ff:ff:ff:ff":
+        return False
+    if ip.startswith("224.") or ip.startswith("239.") or ip.startswith("255.") or ip.startswith("127.") or ip.startswith("169.254."):
+        return False
+
+    # Filter out Docker virtual container MACs (prefix 02:42:)
+    if mac.lower().startswith("02:42:"):
+        return False
+
+    # Filter out Docker virtual interfaces (docker0, veth*, br-<id>, virbr*)
+    iface_clean = (iface or "").lower().strip()
+    if iface_clean.startswith("docker") or iface_clean.startswith("veth") or iface_clean.startswith("virbr") or (iface_clean.startswith("br-") and iface_clean != "br0"):
+        return False
+
+    # Filter out standard Docker bridge subnets (172.16.0.0 - 172.31.255.255)
+    parts = ip.split(".")
+    if len(parts) == 4 and parts[0] == "172":
+        try:
+            second_octet = int(parts[1])
+            if 16 <= second_octet <= 31:
+                return False
+        except ValueError:
+            pass
+
+    # Restrict to the local LAN subnet (matches gateway or local IP prefix, e.g. 192.168.1.*)
+    all_subnets = os.environ.get("NETPULSE_ALL_SUBNETS", "false").lower() in ("true", "1", "yes")
+    if not all_subnets:
+        gw_prefix = ".".join(gateway_ip.split(".")[:3]) + "." if gateway_ip else ""
+        loc_prefix = ".".join(local_ip.split(".")[:3]) + "." if local_ip and not local_ip.startswith("127.") else ""
+        target_prefix = loc_prefix or gw_prefix
+        if target_prefix and not ip.startswith(target_prefix):
+            return False
+
+    return True
+
 def parse_arp_table(gateway_ip: str, local_ip: str) -> list:
     """Parses system ARP table output and extracts valid IP/MAC pairs (Linux & macOS)."""
     devices = []
@@ -126,12 +163,11 @@ def parse_arp_table(gateway_ip: str, local_ip: str) -> list:
                     if len(parts) >= 4:
                         ip = parts[0]
                         raw_mac = parts[3]
-                        if raw_mac == "00:00:00:00:00:00":
-                            continue
+                        iface = parts[5] if len(parts) >= 6 else ""
                         mac = normalize_mac(raw_mac)
-                        if not mac or mac in seen_macs or mac == "ff:ff:ff:ff:ff:ff":
+                        if not mac or mac in seen_macs:
                             continue
-                        if ip.startswith("224.") or ip.startswith("239.") or ip.startswith("255."):
+                        if not is_valid_lan_device(ip, mac, iface, gateway_ip, local_ip):
                             continue
                         seen_macs.add(mac)
                         devices.append({"ip": ip, "mac": mac, "raw_line": line.strip()})
@@ -160,10 +196,9 @@ def parse_arp_table(gateway_ip: str, local_ip: str) -> list:
         raw_mac = match.group(2)
         mac = normalize_mac(raw_mac)
 
-        # Ignore broadcast and multicast
-        if not mac or mac in seen_macs or mac == "ff:ff:ff:ff:ff:ff":
+        if not mac or mac in seen_macs:
             continue
-        if ip.startswith("224.") or ip.startswith("239.") or ip.startswith("255."):
+        if not is_valid_lan_device(ip, mac, "", gateway_ip, local_ip):
             continue
 
         seen_macs.add(mac)

@@ -208,7 +208,42 @@ def init_db():
     if conn.is_pg:
         migrate_sqlite_to_postgres(DB_PATH, conn)
 
+    # Clean up virtual Docker containers and align vendor identifications
+    cleanup_and_realign_devices(conn)
+
     conn.close()
+
+def cleanup_and_realign_devices(conn):
+    """
+    1. Removes any virtual Docker container entries (172.x, 02:42:x).
+    2. Recalculates vendors and categories using the latest OUI dictionary (fixes Formuler / Aloys etc).
+    """
+    try:
+        from oui_database import lookup_vendor, classify_device
+        cursor = conn.cursor()
+
+        # 1. Purge non-LAN / Docker containers
+        cursor.execute("DELETE FROM devices WHERE ip LIKE '172.%' OR mac LIKE '02:42:%'")
+        cursor.execute("DELETE FROM alerts WHERE device_ip LIKE '172.%' OR device_mac LIKE '02:42:%'")
+
+        # 2. Re-align vendor & classification for all devices
+        cursor.execute("SELECT id, ip, mac, hostname, vendor, device_type FROM devices")
+        all_devs = cursor.fetchall()
+        for d in all_devs:
+            mac = d["mac"]
+            curr_vendor = d["vendor"]
+            curr_type = d["device_type"]
+
+            expected_vendor = lookup_vendor(mac)
+            if expected_vendor and expected_vendor != "Desconhecido" and expected_vendor != curr_vendor:
+                new_type = classify_device(d["ip"], mac, d["hostname"], expected_vendor)
+                cursor.execute(
+                    "UPDATE devices SET vendor = ?, device_type = ? WHERE id = ?",
+                    (expected_vendor, new_type if (curr_type in ("unknown", "mobile") and new_type == "tv_media") else curr_type, d["id"])
+                )
+        conn.commit()
+    except Exception as e:
+        print(f"Erro ao realinhar dispositivos: {e}")
 
 def migrate_sqlite_to_postgres(sqlite_path, pg_wrapper):
     """Copies existing data from SQLite netpulse.db to PostgreSQL if Postgres tables are empty."""

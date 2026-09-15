@@ -972,7 +972,7 @@ def classify_device(ip: str, mac: str, hostname: str, vendor: str, open_ports: l
         return "iot"
 
     # 5. Smart TV, Áudio & Media Streaming
-    if "tv" in h_lower or "bravia" in h_lower or "webos" in h_lower or "chromecast" in v_lower or "chromecast" in h_lower or "firetv" in h_lower or "roku" in v_lower or "apple tv" in h_lower or "shield" in v_lower or "formuler" in v_lower or "sonos" in v_lower or "bose" in v_lower or "yamaha" in v_lower or "denon" in v_lower or "marantz" in v_lower:
+    if "tv" in h_lower or "bravia" in h_lower or "webos" in h_lower or "chromecast" in v_lower or "chromecast" in h_lower or "firetv" in h_lower or "roku" in v_lower or "apple tv" in h_lower or "shield" in v_lower or "formuler" in v_lower or "aloys" in v_lower or "sonos" in v_lower or "bose" in v_lower or "yamaha" in v_lower or "denon" in v_lower or "marantz" in v_lower:
         return "tv_media"
 
     # 6. Mobile devices vs Computers (Apple, Samsung, etc.)
