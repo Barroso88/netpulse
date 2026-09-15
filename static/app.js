@@ -1076,6 +1076,42 @@ async function pingModalDevice() {
   }
 }
 
+async function wakeModalDevice() {
+  if (!currentModalDeviceId) return;
+  const dev = state.devices.find(d => d.id === currentModalDeviceId);
+  if (!dev) return;
+
+  if (!dev.mac) {
+    showToast("Dispositivo sem endereço MAC registado para Wake-on-LAN", "error");
+    return;
+  }
+
+  const btnText = document.getElementById("m-dev-wake-btn-text");
+  const origText = btnText ? btnText.textContent : "Ligar (WoL)";
+  if (btnText) {
+    btnText.innerHTML = `<i data-lucide="loader" class="w-3.5 h-3.5 animate-spin"></i> A enviar...`;
+    if (window.lucide) lucide.createIcons();
+  }
+
+  try {
+    const res = await fetch(`/api/devices/${dev.id}/wake`, { method: "POST" });
+    const data = await res.json();
+    if (data.success) {
+      showToast(`Pacote Mágico WoL transmitido para ${dev.mac.toUpperCase()}!`, "success");
+      
+      // Auto-ping in background to detect when device boots up
+      setTimeout(() => { pingModalDevice(); }, 4000);
+      setTimeout(() => { pingModalDevice(); }, 9000);
+    } else {
+      showToast(data.error || "Falha ao enviar pacote Wake-on-LAN", "error");
+    }
+  } catch (err) {
+    showToast("Erro ao comunicar com o servidor", "error");
+  } finally {
+    if (btnText) btnText.textContent = origText;
+  }
+}
+
 async function scanModalDevicePorts() {
   if (!currentModalDeviceId) return;
   const dev = state.devices.find(d => d.id === currentModalDeviceId);
@@ -1809,4 +1845,155 @@ function formatRelativeTime(isoStr) {
     return isoStr;
   }
 }
+
+// =============================================================================
+// DNS BENCHMARK SUITE
+// =============================================================================
+let dnsBenchmarkData = null;
+
+async function openDnsBenchmarkModal() {
+  const modal = document.getElementById("modal-dns-benchmark");
+  if (!modal) return;
+  modal.classList.remove("hidden");
+  if (window.lucide) lucide.createIcons();
+
+  if (!dnsBenchmarkData) {
+    await runDnsBenchmark();
+  } else {
+    renderDnsBenchmark(dnsBenchmarkData);
+  }
+}
+
+function closeDnsBenchmarkModal() {
+  const modal = document.getElementById("modal-dns-benchmark");
+  if (modal) modal.classList.add("hidden");
+}
+
+async function runDnsBenchmark() {
+  const rerunBtn = document.getElementById("dns-btn-rerun");
+  const rerunText = document.getElementById("dns-rerun-text");
+  const rerunIcon = document.getElementById("dns-rerun-icon");
+  const listEl = document.getElementById("dns-benchmark-list");
+
+  if (rerunBtn) rerunBtn.disabled = true;
+  if (rerunText) rerunText.textContent = "A testar...";
+  if (rerunIcon) rerunIcon.classList.add("animate-spin");
+
+  if (listEl && !dnsBenchmarkData) {
+    listEl.innerHTML = `
+      <div class="p-8 text-center text-slate-400 space-y-3">
+        <i data-lucide="loader" class="w-8 h-8 mx-auto animate-spin text-purple-400"></i>
+        <p class="font-medium text-xs">A efetuar medições de latência em 8 servidores DNS em paralelo...</p>
+      </div>
+    `;
+    if (window.lucide) lucide.createIcons();
+  }
+
+  try {
+    const res = await fetch("/api/dns-benchmark/run", { method: "POST" });
+    const data = await res.json();
+    if (data && data.servers) {
+      dnsBenchmarkData = data;
+      renderDnsBenchmark(data);
+      showToast("Benchmark de DNS concluído com sucesso!", "success");
+    } else {
+      showToast("Falha ao executar benchmark de DNS", "error");
+    }
+  } catch (err) {
+    console.error(err);
+    showToast("Erro ao comunicar com o servidor de DNS", "error");
+  } finally {
+    if (rerunBtn) rerunBtn.disabled = false;
+    if (rerunText) rerunText.textContent = "Testar Novamente";
+    if (rerunIcon) rerunIcon.classList.remove("animate-spin");
+  }
+}
+
+function renderDnsBenchmark(data) {
+  if (!data || !data.servers) return;
+
+  const titleEl = document.getElementById("dns-fastest-title");
+  const descEl = document.getElementById("dns-fastest-desc");
+  const lastTestedEl = document.getElementById("dns-last-tested");
+  const listEl = document.getElementById("dns-benchmark-list");
+
+  const fastest = data.servers[0];
+  if (titleEl) {
+    titleEl.textContent = fastest && fastest.is_online ? `Mais Rápido: ${fastest.name} (${fastest.avg_ms} ms)` : "Servidor Mais Rápido: --";
+  }
+  if (descEl) {
+    descEl.textContent = data.comparison_summary || "Classificação ordenada pela menor latência de resolução.";
+  }
+  if (lastTestedEl) {
+    lastTestedEl.textContent = `Testado às ${data.timestamp ? data.timestamp.split(" ")[1] : "--"}`;
+  }
+
+  if (!listEl) return;
+
+  // Max latency for relative visual progress bar
+  const validLats = data.servers.filter(s => s.is_online && s.avg_ms !== null).map(s => s.avg_ms);
+  const maxLat = validLats.length > 0 ? Math.max(...validLats, 50) : 100;
+
+  listEl.innerHTML = data.servers.map((s, idx) => {
+    const isFastest = idx === 0 && s.is_online;
+    const isRouter = s.id === "router";
+    const rank = idx + 1;
+    const barWidth = s.avg_ms !== null ? Math.min(100, Math.max(8, (s.avg_ms / maxLat) * 100)) : 0;
+
+    const rankColor = isFastest
+      ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
+      : (rank <= 3 ? "bg-purple-500/20 text-purple-300 border-purple-500/30" : "bg-slate-800 text-slate-400 border-slate-700/50");
+
+    const latencyColor = isFastest
+      ? "text-amber-300"
+      : (s.avg_ms !== null && s.avg_ms < 15 ? "text-emerald-400" : (s.avg_ms !== null && s.avg_ms < 40 ? "text-cyan-300" : "text-slate-300"));
+
+    const barColor = isFastest
+      ? "bg-gradient-to-r from-amber-500 to-amber-400"
+      : (isRouter ? "bg-gradient-to-r from-cyan-500 to-blue-500" : "bg-gradient-to-r from-purple-500 to-indigo-500");
+
+    return `
+      <div class="p-3 rounded-xl bg-slate-900/90 border ${isFastest ? 'border-amber-500/50 shadow-lg shadow-amber-500/5' : (isRouter ? 'border-cyan-500/40' : 'border-slate-800')} flex flex-col gap-2 transition hover:bg-slate-900">
+        
+        <!-- Header row -->
+        <div class="flex items-center justify-between gap-3">
+          <div class="flex items-center gap-3 min-w-0 flex-1">
+            <div class="w-7 h-7 rounded-lg border flex items-center justify-center font-mono font-bold text-xs flex-shrink-0 ${rankColor}">
+              #${rank}
+            </div>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-bold text-white text-xs">${escapeHtml(s.name)}</span>
+                <span class="font-mono text-[11px] text-cyan-300/90 font-semibold">${s.ip}</span>
+                ${isFastest ? '<span class="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold text-[9px] border border-amber-500/40 uppercase tracking-wider">MAIS RÁPIDO</span>' : ''}
+                ${isRouter ? '<span class="px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 font-bold text-[9px] border border-cyan-500/40 uppercase tracking-wider">SEU ROUTER</span>' : ''}
+              </div>
+              <div class="flex items-center gap-1.5 mt-1 flex-wrap">
+                ${(s.features || []).map(f => `<span class="px-1.5 py-0.2 rounded bg-slate-800/80 text-slate-400 text-[10px] border border-slate-700/40">${escapeHtml(f)}</span>`).join('')}
+              </div>
+            </div>
+          </div>
+
+          <div class="flex flex-col items-end flex-shrink-0">
+            <span class="font-mono font-black text-sm ${latencyColor}">
+              ${s.avg_ms !== null ? s.avg_ms + ' ms' : '<span class="text-rose-400 text-xs">Timeout</span>'}
+            </span>
+            <span class="text-[10px] text-slate-500 font-mono">${s.min_ms !== null ? 'Min: ' + s.min_ms + 'ms' : 'Sem resposta'}</span>
+          </div>
+        </div>
+
+        <!-- Latency comparison bar -->
+        ${s.avg_ms !== null ? `
+          <div class="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
+            <div class="h-full rounded-full ${barColor}" style="width: ${barWidth}%"></div>
+          </div>
+        ` : ''}
+
+      </div>
+    `;
+  }).join("");
+
+  if (window.lucide) lucide.createIcons();
+}
+
 

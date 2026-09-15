@@ -21,6 +21,9 @@ import port_scanner
 import latency_monitor
 import speedtest_engine
 import agents_engine
+import tools_network
+
+LATEST_DNS_BENCHMARK = None
 
 PORT = int(os.environ.get("PORT", 8888))
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
@@ -187,6 +190,14 @@ class NetPulseHandler(http.server.SimpleHTTPRequestHandler):
             except Exception as e:
                 return self.send_json({"error": str(e)}, 500)
 
+        elif path == "/api/dns-benchmark":
+            global LATEST_DNS_BENCHMARK
+            if LATEST_DNS_BENCHMARK is None:
+                net_info = network_scanner.get_network_info()
+                gw = net_info.get("gateway_ip") or "192.168.1.1"
+                LATEST_DNS_BENCHMARK = tools_network.benchmark_dns_servers(gw)
+            return self.send_json(LATEST_DNS_BENCHMARK)
+
         # Serve static frontend files
         if path == "/" or path == "/index.html":
             return self.serve_file(os.path.join(STATIC_DIR, "index.html"), "text/html")
@@ -321,6 +332,38 @@ class NetPulseHandler(http.server.SimpleHTTPRequestHandler):
                 agent_id = parts[3]
                 threading.Thread(target=agents_engine.get_engine().run_mission, args=(agent_id,), daemon=True).start()
                 return self.send_json({"success": True, "agent_id": agent_id, "message": "Missão iniciada com sucesso"})
+            except Exception as e:
+                return self.send_json({"error": str(e)}, 500)
+
+        elif path.startswith("/api/devices/") and path.endswith("/wake"):
+            parts = path.split("/")
+            try:
+                device_id = int(parts[3])
+                devices = database.get_all_devices()
+                target = next((d for d in devices if d["id"] == device_id), None)
+                if not target:
+                    return self.send_json({"error": "Dispositivo não encontrado"}, 404)
+                if not target.get("mac"):
+                    return self.send_json({"error": "Dispositivo sem endereço MAC registado"}, 400)
+
+                res = tools_network.send_wake_on_lan(target["mac"])
+                return self.send_json({
+                    "success": True,
+                    "device_id": device_id,
+                    "ip": target["ip"],
+                    "mac": target["mac"],
+                    "details": res
+                })
+            except Exception as e:
+                return self.send_json({"error": str(e)}, 500)
+
+        elif path == "/api/dns-benchmark/run":
+            global LATEST_DNS_BENCHMARK
+            try:
+                net_info = network_scanner.get_network_info()
+                gw = net_info.get("gateway_ip") or "192.168.1.1"
+                LATEST_DNS_BENCHMARK = tools_network.benchmark_dns_servers(gw)
+                return self.send_json(LATEST_DNS_BENCHMARK)
             except Exception as e:
                 return self.send_json({"error": str(e)}, 500)
 
