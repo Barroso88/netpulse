@@ -862,89 +862,80 @@ function renderDevices() {
       const openPorts = Array.isArray(d.open_ports) ? d.open_ports : [];
 
       return `
-        <div class="device-card ${cat.colorClass} p-4 sm:p-5 space-y-3.5">
-          <!-- Card Header -->
-          <div class="flex items-start justify-between gap-2">
-            <div class="flex items-center gap-3 min-w-0">
-              <div class="category-avatar !w-10 !h-10" title="Marca: ${brand.name}">
-                <div class="w-8 h-8 flex items-center justify-center">
+        <div class="device-card ${cat.colorClass} group transition-all duration-200 cursor-pointer" onclick="openEditModal(${d.id})">
+          <div class="p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            
+            <!-- Left: Icon + Identity -->
+            <div class="flex items-center gap-3.5 min-w-0 flex-1">
+              <div class="category-avatar !w-11 !h-11 flex-shrink-0" title="Marca: ${brand.name}">
+                <div class="w-9 h-9 flex items-center justify-center">
                   ${brand.svg}
                 </div>
               </div>
-              <div class="min-w-0">
-                <div class="flex items-center gap-1.5 flex-wrap">
-                  <h4 class="font-bold text-white text-sm truncate tracking-tight" title="${escapeHtml(displayName)}">${escapeHtml(displayName)}</h4>
+
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="font-bold text-white text-sm sm:text-base tracking-tight truncate">${escapeHtml(displayName)}</span>
+                  ${getCategoryBadge(d.device_type)}
                   ${newBadge}
                   ${trustedBadge}
                 </div>
-                <p class="text-xs text-slate-400 truncate">${escapeHtml(d.vendor || 'Desconhecido')}</p>
+
+                <div class="flex items-center gap-2 text-xs text-slate-300 font-mono mt-1 flex-wrap">
+                  <button onclick="event.stopPropagation(); copyToClipboard('${d.ip}', 'IP')" class="copyable-badge text-cyan-300 font-bold hover:text-cyan-200" title="Copiar IP">
+                    <span>${maskIp(d.ip)}</span>
+                    <i data-lucide="copy" class="w-3 h-3 text-cyan-400"></i>
+                  </button>
+                  <span class="text-slate-600">•</span>
+                  <button onclick="event.stopPropagation(); copyToClipboard('${d.mac.toUpperCase()}', 'MAC')" class="copyable-badge text-slate-300 hover:text-white" title="Copiar MAC">
+                    <span>${maskMac(d.mac.toUpperCase())}</span>
+                  </button>
+                  ${d.vendor ? `
+                    <span class="text-slate-600 hidden md:inline">•</span>
+                    <span class="text-slate-400 font-sans truncate max-w-[180px] hidden md:inline">${escapeHtml(d.vendor)}</span>
+                  ` : ''}
+                  ${d.hostname ? `
+                    <span class="text-slate-600 hidden lg:inline">•</span>
+                    <span class="text-slate-400 font-sans truncate max-w-[160px] hidden lg:inline text-[11px]">${escapeHtml(d.hostname)}</span>
+                  ` : ''}
+                </div>
               </div>
             </div>
-            <div class="flex-shrink-0">
-              ${getCategoryBadge(d.device_type)}
-            </div>
-          </div>
 
-          <!-- Network Info Pill Box -->
-          <div class="device-card-databox text-xs space-y-1.5 font-mono">
-            <div class="flex items-center justify-between">
-              <span class="text-slate-300 flex items-center gap-1.5"><i data-lucide="hash" class="w-3 h-3 text-cyan-400"></i> IP:</span>
-              <button onclick="copyToClipboard('${d.ip}', 'IP')" class="copyable-badge text-white font-bold text-[13px] tracking-wide" title="Clique para copiar IP">
-                <span>${maskIp(d.ip)}</span>
-                <i data-lucide="copy" class="w-3 h-3 copy-icon text-cyan-300"></i>
-              </button>
-            </div>
-            <div class="flex items-center justify-between">
-              <span class="text-slate-300 flex items-center gap-1.5"><i data-lucide="cpu" class="w-3 h-3 text-purple-400"></i> MAC:</span>
-              <button onclick="copyToClipboard('${d.mac.toUpperCase()}', 'MAC')" class="copyable-badge text-slate-200 font-semibold text-[11px]" title="Clique para copiar MAC">
-                <span>${maskMac(d.mac.toUpperCase())}</span>
-                <i data-lucide="copy" class="w-3 h-3 copy-icon text-slate-400"></i>
-              </button>
-            </div>
-            ${d.hostname ? `
-              <div class="flex items-center justify-between pt-1 border-t border-white/10 font-sans">
-                <span class="text-slate-300 text-[11px]">Hostname:</span>
-                <span class="text-slate-200 text-[11px] font-medium truncate max-w-[170px]" title="${escapeHtml(d.hostname)}">${escapeHtml(d.hostname)}</span>
-              </div>
-            ` : ''}
-          </div>
-
-          <!-- Open Ports -->
-          <div class="min-h-[22px]">
-            ${openPorts.length > 0 ? `
-              <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="text-[10px] text-white/70 uppercase font-semibold mr-0.5">Portas:</span>
-                ${openPorts.slice(0, 4).map(p => `
-                  <span class="device-port-tag px-1.5 py-0.5 font-mono text-[10px] whitespace-nowrap">${p.port} ${escapeHtml(p.service || '')}</span>
-                `).join('')}
-                ${openPorts.length > 4 ? `<span class="text-[10px] text-white/80 font-medium whitespace-nowrap">+${openPorts.length - 4}</span>` : ''}
-              </div>
-            ` : `
-              <span class="text-[11px] text-white/50 italic">Sem portas ativas detetadas</span>
-            `}
-          </div>
-
-          <!-- Action Footer -->
-          <div class="flex items-center justify-between pt-3 border-t border-white/15 text-xs">
-            <div class="flex items-center gap-1.5">
-              <button onclick="pingDevice(${d.id}, '${d.ip}', this)" class="device-card-btn">
-                <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-300"></i> Ping
-              </button>
-              <button onclick="scanDevicePorts(${d.id}, '${d.ip}')" class="device-card-btn">
-                <i data-lucide="shield" class="w-3.5 h-3.5 text-blue-300"></i> Portas
-              </button>
-            </div>
-            <div class="flex items-center gap-1.5">
-              ${d.is_new ? `
-                <button onclick="trustDevice(${d.id})" title="Reconhecer / Confiar" class="px-2 py-1 rounded-lg bg-amber-500/30 hover:bg-amber-500/50 text-amber-200 font-bold text-[11px] border border-amber-400/50 transition shadow-sm">
-                  Reconhecer
+            <!-- Right: Action Buttons -->
+            <div class="flex items-center justify-between sm:justify-end gap-2 flex-shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/10" onclick="event.stopPropagation()">
+              <div class="flex items-center gap-1.5">
+                <button onclick="pingDevice(${d.id}, '${d.ip}', this)" title="Testar Ping" class="device-card-btn flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold">
+                  <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-300"></i>
+                  <span>Ping</span>
                 </button>
-              ` : ''}
-              <button onclick="openEditModal(${d.id})" title="Editar" class="device-card-btn !p-1.5">
-                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
-              </button>
+                <button onclick="scanDevicePorts(${d.id}, '${d.ip}')" title="Scan de Portas" class="device-card-btn flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold">
+                  <i data-lucide="shield" class="w-3.5 h-3.5 text-blue-300"></i>
+                  <span>Portas</span>
+                </button>
+                ${d.is_new ? `
+                  <button onclick="trustDevice(${d.id})" title="Reconhecer Dispositivo" class="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold text-xs border border-amber-500/40 transition shadow-sm">
+                    Reconhecer
+                  </button>
+                ` : ''}
+                <button onclick="openEditModal(${d.id})" title="Editar Detalhes" class="device-card-btn !p-2">
+                  <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
             </div>
+
           </div>
+
+          <!-- Open Ports row if any -->
+          ${openPorts.length > 0 ? `
+            <div class="px-4 pb-3 pt-0 flex items-center gap-1.5 flex-wrap text-xs border-t border-white/5 pt-2">
+              <span class="text-[10px] text-white/60 uppercase font-semibold mr-1">Portas Abertas:</span>
+              ${openPorts.slice(0, 6).map(p => `
+                <span class="device-port-tag px-2 py-0.5 font-mono text-[11px]">${p.port} ${escapeHtml(p.service || '')}</span>
+              `).join('')}
+              ${openPorts.length > 6 ? `<span class="text-[10px] text-white/70">+${openPorts.length - 6}</span>` : ''}
+            </div>
+          ` : ''}
         </div>
       `;
     }).join("");

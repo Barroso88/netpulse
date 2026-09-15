@@ -293,9 +293,9 @@
           </div>
 
           <div class="flex items-center bg-slate-900 rounded-xl p-1 border border-slate-800 flex-shrink-0">
-            <button id="btn-view-grid" onclick="setViewMode('grid')" title="Vista em Cartões" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-slate-800 transition">
-              <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
-              <span class="hidden sm:inline">Cartões</span>
+            <button id="btn-view-grid" onclick="setViewMode('grid')" title="Vista em Botões" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-slate-800 transition">
+              <i data-lucide="layout-list" class="w-3.5 h-3.5"></i>
+              <span class="hidden sm:inline">Botões</span>
             </button>
             <button id="btn-view-table" onclick="setViewMode('table')" title="Vista em Tabela" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition">
               <i data-lucide="table" class="w-3.5 h-3.5"></i>
@@ -311,7 +311,7 @@
       </div>
 
       <!-- Devices Container: Table View -->
-      <div id="container-table-view" class="rounded-2xl bg-darkcard border border-darkborder overflow-hidden shadow-sm">
+      <div id="container-table-view" class="hidden rounded-2xl bg-darkcard border border-darkborder overflow-hidden shadow-sm">
         <div class="overflow-x-auto">
           <table class="w-full text-left text-xs">
             <thead class="bg-slate-900/80 text-slate-400 uppercase tracking-wider text-[11px] font-semibold border-b border-darkborder">
@@ -366,8 +366,8 @@
         </div>
       </div>
 
-      <!-- Devices Container: Grid View -->
-      <div id="container-grid-view" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+      <!-- Devices Container: Isolated Button-Cards View -->
+      <div id="container-grid-view" class="space-y-3 sm:space-y-3.5">
         <!-- Rendered via JS -->
       </div>
 
