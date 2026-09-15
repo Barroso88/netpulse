@@ -142,10 +142,13 @@
             <span class="inline-block w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-400 animate-pulse"></span>
             Online
           </span>
+          <span id="kpi-devices-offline-badge" class="hidden text-[10px] sm:text-[11px] text-slate-400 font-medium px-1.5 py-0.5 rounded bg-slate-800/80 border border-slate-700/50">
+            <span id="kpi-offline-devices" class="text-slate-300 font-mono font-bold">0</span> off
+          </span>
         </div>
         <div class="mt-2.5 sm:mt-3 pt-2.5 sm:pt-3 border-t border-white/10 flex items-center justify-between text-[11px] sm:text-xs text-cyan-200/80">
-          <span>Novos:</span>
-          <span id="kpi-new-devices" class="px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 font-bold font-mono">0</span>
+          <span>Total: <b id="kpi-devices-total" class="text-white font-mono font-bold">--</b></span>
+          <span>Novos: <span id="kpi-new-devices" class="px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 font-bold font-mono">0</span></span>
         </div>
       </div>
 
@@ -575,6 +578,7 @@
           <div class="min-w-0">
             <h3 id="m-dev-title" class="font-bold text-base sm:text-lg text-white truncate tracking-tight">Nome do Dispositivo</h3>
             <div class="flex items-center gap-1.5 mt-1 flex-wrap">
+              <span id="m-dev-badge-status"></span>
               <span id="m-dev-badge-cat"></span>
               <span id="m-dev-badge-new"></span>
               <span id="m-dev-badge-trusted"></span>
@@ -612,12 +616,22 @@
           </div>
 
           <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1">
+            <span class="text-slate-400 flex items-center gap-1.5"><i data-lucide="activity" class="w-3.5 h-3.5 text-emerald-400"></i> Estado de Ligação</span>
+            <span id="m-dev-status-text" class="font-bold text-xs block truncate">--</span>
+          </div>
+
+          <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1">
+            <span class="text-slate-400 flex items-center gap-1.5"><i data-lucide="clock" class="w-3.5 h-3.5 text-blue-400"></i> Última Deteção</span>
+            <span id="m-dev-last-seen" class="font-medium text-slate-200 text-xs block truncate">--</span>
+          </div>
+
+          <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1">
             <span class="text-slate-400 flex items-center gap-1.5"><i data-lucide="factory" class="w-3.5 h-3.5 text-amber-400"></i> Fabricante OUI</span>
             <span id="m-dev-vendor" class="font-medium text-white block truncate">--</span>
           </div>
 
           <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1">
-            <span class="text-slate-400 flex items-center gap-1.5"><i data-lucide="globe" class="w-3.5 h-3.5 text-emerald-400"></i> Hostname DNS</span>
+            <span class="text-slate-400 flex items-center gap-1.5"><i data-lucide="globe" class="w-3.5 h-3.5 text-indigo-400"></i> Hostname DNS</span>
             <span id="m-dev-hostname" class="font-medium text-white block truncate">--</span>
           </div>
         </div>
@@ -869,6 +883,6 @@
   <!-- Toast Notification Container -->
   <div id="toast-container" class="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 left-4 sm:left-auto z-50 flex flex-col gap-2 pointer-events-none"></div>
 
-  <script src="/app.js?v=8.0"></script>
+  <script src="/app.js?v=8.2"></script>
 </body>
 </html>

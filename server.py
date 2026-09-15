@@ -169,6 +169,20 @@ class NetPulseHandler(http.server.SimpleHTTPRequestHandler):
                     return self.send_json({"error": "Dispositivo não encontrado"}, 404)
                 
                 ping_res = latency_monitor.measure_ping_socket(target["ip"], count=2)
+                
+                # Update device online/offline status in database based on live ping
+                try:
+                    conn = database.get_db_connection()
+                    if ping_res and ping_res.get("avg_ms") is not None:
+                        conn.cursor().execute("UPDATE devices SET status = 'online', last_seen = CURRENT_TIMESTAMP WHERE id = ?", (device_id,))
+                        conn.commit()
+                    elif ping_res and not ping_res.get("alive"):
+                        conn.cursor().execute("UPDATE devices SET status = 'offline' WHERE id = ?", (device_id,))
+                        conn.commit()
+                    conn.close()
+                except Exception:
+                    pass
+
                 return self.send_json({"device_id": device_id, "ip": target["ip"], "ping": ping_res})
             except Exception as e:
                 return self.send_json({"error": str(e)}, 500)

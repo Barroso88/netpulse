@@ -471,14 +471,48 @@ async function triggerScan(quick = false) {
   }
 }
 
+// Relative time formatter for device activity
+function formatLastSeen(ts) {
+  if (!ts) return "Desconhecido";
+  try {
+    const date = new Date(ts.replace(" ", "T") + (ts.includes("Z") ? "" : "Z"));
+    if (isNaN(date.getTime())) return ts;
+    const now = new Date();
+    const diffSec = Math.max(0, Math.floor((now - date) / 1000));
+    if (diffSec < 60) return "Agora mesmo";
+    if (diffSec < 3600) return `há ${Math.floor(diffSec / 60)} min`;
+    if (diffSec < 86400) return `há ${Math.floor(diffSec / 3600)} h`;
+    return date.toLocaleDateString("pt-PT", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+  } catch (e) {
+    return ts;
+  }
+}
+
 // Render Top KPI Stats
 function renderKPIs() {
   const total = state.devices.length;
+  const onlineCount = state.devices.filter(d => (d.status || 'online') === 'online').length;
+  const offlineCount = total - onlineCount;
   const newCount = state.devices.filter(d => d.is_new).length;
 
-  document.getElementById("kpi-total-devices").textContent = total;
-  document.getElementById("kpi-new-devices").textContent = newCount;
-  document.getElementById("tab-count-devices").textContent = total;
+  const kpiTotal = document.getElementById("kpi-total-devices");
+  if (kpiTotal) kpiTotal.textContent = onlineCount;
+
+  const kpiOffline = document.getElementById("kpi-offline-devices");
+  const kpiOfflineBadge = document.getElementById("kpi-devices-offline-badge");
+  if (kpiOffline) {
+    kpiOffline.textContent = offlineCount;
+    if (kpiOfflineBadge) kpiOfflineBadge.classList.toggle("hidden", offlineCount === 0);
+  }
+
+  const kpiTotalDevices = document.getElementById("kpi-devices-total");
+  if (kpiTotalDevices) kpiTotalDevices.textContent = total;
+
+  const kpiNew = document.getElementById("kpi-new-devices");
+  if (kpiNew) kpiNew.textContent = newCount;
+
+  const tabCount = document.getElementById("tab-count-devices");
+  if (tabCount) tabCount.textContent = total;
 }
 
 // Render Category Filter Pills
@@ -738,24 +772,37 @@ function renderDevices() {
       const isSelf = (d.ip === state.networkInfo.local_ip);
       const displayName = d.custom_name || d.hostname || (isGateway ? "Router Gateway" : (isSelf ? "Este Computador" : d.vendor || "Dispositivo"));
 
+      const isOnline = (d.status || 'online') === 'online';
+      const statusDot = isOnline
+        ? `<span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 ring-2 ring-slate-950 shadow-sm" title="Ligado (Online)"></span>`
+        : `<span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-slate-500 ring-2 ring-slate-950 shadow-sm" title="Desligado (Offline)"></span>`;
+
+      const statusBadge = isOnline
+        ? `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-500/40 uppercase tracking-wide"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>Online</span>`
+        : `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-800/80 text-slate-400 text-[10px] font-semibold border border-slate-700/60 uppercase tracking-wide"><span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>Offline</span>`;
+
+      const cardMuted = isOnline ? '' : 'opacity-75 hover:opacity-100';
+
       const newBadge = d.is_new ? `<span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/40 animate-pulse">NOVO</span>` : '';
       const trustedBadge = d.is_trusted ? `<i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-300" title="Dispositivo Confiável"></i>` : '';
 
       return `
-        <div class="device-card ${cat.colorClass} group px-4 sm:px-5 cursor-pointer" onclick="openDeviceModal(${d.id})" title="Clique para ver todos os detalhes">
+        <div class="device-card ${cat.colorClass} ${cardMuted} group px-4 sm:px-5 cursor-pointer transition" onclick="openDeviceModal(${d.id})" title="Clique para ver todos os detalhes">
           <div class="w-full flex items-center justify-between gap-3">
             
             <!-- Left: Avatar + Identity -->
             <div class="flex items-center gap-3.5 min-w-0 flex-1">
-              <div class="category-avatar !w-10 !h-10 sm:!w-11 sm:!h-11 flex-shrink-0" title="Marca: ${brand.name}">
+              <div class="category-avatar !w-10 !h-10 sm:!w-11 sm:!h-11 flex-shrink-0 relative" title="Marca: ${brand.name}">
                 <div class="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center">
                   ${brand.svg}
                 </div>
+                ${statusDot}
               </div>
 
               <div class="min-w-0 flex-1">
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-1.5 flex-wrap sm:flex-nowrap">
                   <span class="font-bold text-white text-sm sm:text-base tracking-tight truncate">${escapeHtml(displayName)}</span>
+                  ${statusBadge}
                   ${newBadge}
                   ${trustedBadge}
                 </div>
@@ -891,6 +938,29 @@ function openDeviceModal(deviceId) {
   }
 
   document.getElementById("m-dev-title").textContent = displayName;
+  
+  // Status Badge & Last Seen
+  const isOnline = (dev.status || 'online') === 'online';
+
+  const statusBadgeEl = document.getElementById("m-dev-badge-status");
+  if (statusBadgeEl) {
+    statusBadgeEl.innerHTML = isOnline
+      ? `<span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-500/40 flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>ONLINE</span>`
+      : `<span class="px-2 py-0.5 rounded bg-slate-800 text-slate-400 text-[10px] font-bold border border-slate-700 flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>OFFLINE</span>`;
+  }
+
+  const statusTextEl = document.getElementById("m-dev-status-text");
+  if (statusTextEl) {
+    statusTextEl.innerHTML = isOnline
+      ? `<span class="text-emerald-400 font-bold flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Ligado / Ativo</span>`
+      : `<span class="text-slate-400 font-bold flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-slate-500"></span> Desligado / Inativo</span>`;
+  }
+
+  const lastSeenEl = document.getElementById("m-dev-last-seen");
+  if (lastSeenEl) {
+    lastSeenEl.textContent = formatLastSeen(dev.last_seen);
+  }
+
   document.getElementById("m-dev-badge-cat").innerHTML = getCategoryBadge(dev.device_type);
   document.getElementById("m-dev-badge-new").innerHTML = dev.is_new 
     ? `<span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/40 animate-pulse">NOVO</span>` : '';
@@ -965,12 +1035,38 @@ async function pingModalDevice() {
     if (resultBox && valBox) {
       resultBox.classList.remove("hidden");
       if (data.ping && data.ping.alive) {
-        valBox.textContent = `${data.ping.avg_ms} ms (Dispositivo Online)`;
+        valBox.textContent = `${data.ping.avg_ms} ms (Dispositivo Ligado & Operacional)`;
         valBox.className = "text-emerald-400 font-bold";
+        dev.status = 'online';
+        dev.last_seen = new Date().toISOString();
       } else {
-        valBox.textContent = `Sem resposta (Timeout / ICMP Bloqueado)`;
+        valBox.textContent = `Sem resposta ao Ping (Dispositivo Desligado / Sem Conexão)`;
         valBox.className = "text-rose-400 font-bold";
+        dev.status = 'offline';
       }
+
+      // Live update status in modal and on cards
+      const statusBadgeEl = document.getElementById("m-dev-badge-status");
+      const statusTextEl = document.getElementById("m-dev-status-text");
+      const lastSeenEl = document.getElementById("m-dev-last-seen");
+      const isNowOnline = dev.status === 'online';
+
+      if (statusBadgeEl) {
+        statusBadgeEl.innerHTML = isNowOnline
+          ? `<span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-500/40 flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>ONLINE</span>`
+          : `<span class="px-2 py-0.5 rounded bg-slate-800 text-slate-400 text-[10px] font-bold border border-slate-700 flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>OFFLINE</span>`;
+      }
+      if (statusTextEl) {
+        statusTextEl.innerHTML = isNowOnline
+          ? `<span class="text-emerald-400 font-bold flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Ligado / Ativo</span>`
+          : `<span class="text-slate-400 font-bold flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-slate-500"></span> Desligado / Inativo</span>`;
+      }
+      if (lastSeenEl) {
+        lastSeenEl.textContent = formatLastSeen(dev.last_seen);
+      }
+
+      renderDevices();
+      renderKPIs();
     }
   } catch (e) {
     console.error(e);

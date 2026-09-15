@@ -411,7 +411,7 @@ def mark_offline_stale_devices(active_macs):
 def get_all_devices():
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM devices ORDER BY status ASC, ip ASC")
+    cursor.execute("SELECT * FROM devices ORDER BY CASE WHEN status = 'online' THEN 0 ELSE 1 END, ip ASC")
     rows = cursor.fetchall()
     devices = []
     for r in rows:
