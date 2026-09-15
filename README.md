@@ -88,3 +88,54 @@ O servidor iniciará instantaneamente em **`http://localhost:8888`** e estará a
 - **Base de Dados**: SQLite embutido (`netpulse.db`) com histórico e inventário persistidos.
 - **Frontend**: Single Page Application com Tailwind CSS, Lucide Icons, Chart.js e Cyber Glass 2.0 Design System.
 
+---
+
+## 🐳 Instalação em Docker & Unraid
+
+### Imagem Oficial no GHCR
+```bash
+ghcr.io/barroso88/netpulse:latest
+```
+
+> **IMPORTANTE**: O NetPulse necessita de correr em modo de rede **`host`** (`--net=host`) para aceder diretamente à tabela ARP física da rede local e medir o tráfego dos equipamentos em LAN.
+
+### Método 1: Unraid Docker Tab (Recomendado)
+1. No Unraid, vá ao separador **Docker** e clique em **Add Container**.
+2. Preencha os seguintes parâmetros:
+   - **Name**: `netpulse`
+   - **Repository**: `ghcr.io/barroso88/netpulse:latest`
+   - **Network Type**: `Host`
+   - **Privileged**: `ON` (necessário para pacotes de ping ICMP de baixo nível)
+   - **Port**: `8888`
+   - **Volume Mapping**:
+     - *Container Path*: `/data`
+     - *Host Path*: `/mnt/user/appdata/netpulse`
+3. Clique em **Apply**. O NetPulse iniciará e ficará acessível em `http://IP-DO-UNRAID:8888`.
+
+*(Em alternativa, pode copiar o ficheiro `unraid-template.xml` deste repositório para `/boot/config/plugins/dockerMan/templates-user/my-NetPulse.xml` na sua pen flash do Unraid para carregar o modelo pré-configurado).*
+
+### Método 2: Docker Run
+```bash
+docker run -d \
+  --name netpulse \
+  --restart unless-stopped \
+  --net=host \
+  --privileged \
+  -v /mnt/user/appdata/netpulse:/data \
+  ghcr.io/barroso88/netpulse:latest
+```
+
+### Método 3: Docker Compose
+```yaml
+services:
+  netpulse:
+    image: ghcr.io/barroso88/netpulse:latest
+    container_name: netpulse
+    restart: unless-stopped
+    network_mode: host
+    privileged: true
+    volumes:
+      - /mnt/user/appdata/netpulse:/data
+```
+
+

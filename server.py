@@ -19,7 +19,7 @@ import latency_monitor
 import speedtest_engine
 import agents_engine
 
-PORT = 8888
+PORT = int(os.environ.get("PORT", 8888))
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 
 class NetPulseHandler(http.server.SimpleHTTPRequestHandler):

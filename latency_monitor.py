@@ -14,12 +14,14 @@ import re
 def measure_ping_socket(host: str, port: int = 80, count: int = 2, timeout: float = 0.5) -> dict:
     """
     Measures network latency in milliseconds.
-    Uses native ICMP ping on macOS for real low-latency metrics (~3-10ms), falling back to TCP connect.
+    Uses native ICMP ping on macOS and Linux for real low-latency metrics (~3-10ms), falling back to TCP connect.
     """
     latencies = []
-    # 1. Try native ICMP ping (fast count packets test with 0.2s interval and 1s timeout)
+    # 1. Try native ICMP ping (fast count packets test with 0.2s interval)
     try:
-        cmd = ["ping", "-c", str(count), "-i", "0.2", "-W", "1000", host]
+        import platform
+        waittime = "1000" if platform.system() == "Darwin" else "1"
+        cmd = ["ping", "-c", str(count), "-i", "0.2", "-W", waittime, host]
         out = subprocess.check_output(cmd, universal_newlines=True, stderr=subprocess.DEVNULL, timeout=2.0)
         for line in out.splitlines():
             m = re.search(r'time=([0-9\.]+)\s*ms', line)

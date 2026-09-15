@@ -1,0 +1,11 @@
+services:
+  netpulse:
+    image: ghcr.io/barroso88/netpulse:latest
+    container_name: netpulse
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - PORT=8888
+      - NETPULSE_DATA_DIR=/data
+    volumes:
+      - ./data:/data

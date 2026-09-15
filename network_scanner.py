@@ -12,9 +12,33 @@ from oui_database import lookup_vendor, normalize_mac, classify_device
 import database
 
 def get_default_gateway() -> str:
-    """Extracts the default gateway IP from macOS routing tables."""
+    """Extracts the default gateway IP from routing tables (Linux / macOS)."""
+    # 1. Try Linux /proc/net/route
     try:
-        output = subprocess.check_output(["netstat", "-rn", "-f", "inet"], universal_newlines=True)
+        if os.path.exists("/proc/net/route"):
+            with open("/proc/net/route", "r") as f:
+                for line in f.readlines()[1:]:
+                    parts = line.strip().split()
+                    if len(parts) >= 3 and parts[1] == "00000000":
+                        import struct
+                        gw_ip = socket.inet_ntoa(struct.pack("<L", int(parts[2], 16)))
+                        if gw_ip and gw_ip != "0.0.0.0":
+                            return gw_ip
+    except Exception:
+        pass
+
+    # 2. Try Linux 'ip route'
+    try:
+        out = subprocess.check_output(["ip", "route", "show", "default"], universal_newlines=True, stderr=subprocess.DEVNULL)
+        m = re.search(r'default\s+via\s+([0-9\.]+)', out)
+        if m:
+            return m.group(1)
+    except Exception:
+        pass
+
+    # 3. Try macOS 'netstat -rn -f inet'
+    try:
+        output = subprocess.check_output(["netstat", "-rn", "-f", "inet"], universal_newlines=True, stderr=subprocess.DEVNULL)
         for line in output.splitlines():
             parts = line.split()
             if len(parts) >= 2 and parts[0] == "default":
@@ -24,25 +48,39 @@ def get_default_gateway() -> str:
     return "192.168.1.1"
 
 def get_local_interface_and_ip() -> tuple:
-    """Returns (interface_name, local_ip)."""
-    # Try macOS ipconfig getifaddr en0
-    for iface in ["en0", "en1", "en2"]:
-        try:
-            ip = subprocess.check_output(["ipconfig", "getifaddr", iface], universal_newlines=True).strip()
-            if ip and not ip.startswith("127."):
-                return iface, ip
-        except Exception:
-            continue
+    """Returns (interface_name, local_ip) for Linux and macOS."""
+    local_ip = "127.0.0.1"
+    iface = "eth0"
 
-    # Fallback via dummy UDP socket connection
+    # 1. Try UDP dummy connect
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))
         local_ip = s.getsockname()[0]
         s.close()
-        return "en0", local_ip
     except Exception:
-        return "en0", "127.0.0.1"
+        pass
+
+    # 2. Try Linux 'ip route get' to find interface
+    try:
+        out = subprocess.check_output(["ip", "route", "get", "8.8.8.8"], universal_newlines=True, stderr=subprocess.DEVNULL)
+        m = re.search(r'dev\s+([a-zA-Z0-9_\-\.]+)', out)
+        if m:
+            iface = m.group(1)
+            return iface, local_ip
+    except Exception:
+        pass
+
+    # 3. Try macOS ipconfig
+    for mac_iface in ["en0", "en1", "en2"]:
+        try:
+            ip = subprocess.check_output(["ipconfig", "getifaddr", mac_iface], universal_newlines=True, stderr=subprocess.DEVNULL).strip()
+            if ip and not ip.startswith("127."):
+                return mac_iface, ip
+        except Exception:
+            continue
+
+    return iface, local_ip
 
 def resolve_hostname(ip: str, timeout: float = 0.5) -> str:
     """Performs reverse DNS lookup with quick timeout."""
@@ -74,17 +112,43 @@ def refresh_arp_cache(subnet_prefix: str, max_workers: int = 40):
         list(executor.map(probe_host_silent, ips))
 
 def parse_arp_table(gateway_ip: str, local_ip: str) -> list:
-    """Parses system ARP table output and extracts valid IP/MAC pairs."""
-    try:
-        output = subprocess.check_output(["arp", "-a"], universal_newlines=True)
-    except Exception:
-        return []
-
+    """Parses system ARP table output and extracts valid IP/MAC pairs (Linux & macOS)."""
     devices = []
+    seen_macs = set()
+
+    # 1. On Linux, directly read kernel /proc/net/arp for 100% native accuracy
+    if os.path.exists("/proc/net/arp"):
+        try:
+            with open("/proc/net/arp", "r") as f:
+                lines = f.readlines()[1:]
+                for line in lines:
+                    parts = line.split()
+                    if len(parts) >= 4:
+                        ip = parts[0]
+                        raw_mac = parts[3]
+                        if raw_mac == "00:00:00:00:00:00":
+                            continue
+                        mac = normalize_mac(raw_mac)
+                        if not mac or mac in seen_macs or mac == "ff:ff:ff:ff:ff:ff":
+                            continue
+                        if ip.startswith("224.") or ip.startswith("239.") or ip.startswith("255."):
+                            continue
+                        seen_macs.add(mac)
+                        devices.append({"ip": ip, "mac": mac, "raw_line": line.strip()})
+            if devices:
+                return devices
+        except Exception:
+            pass
+
+    # 2. Fallback to 'arp -a' (macOS and Linux net-tools)
+    try:
+        output = subprocess.check_output(["arp", "-a"], universal_newlines=True, stderr=subprocess.DEVNULL)
+    except Exception:
+        output = ""
+
     # Pattern: ? (192.168.1.1) at bc:7:1d:7e:7f:c6 on en0 ifscope [ethernet]
     pattern = re.compile(r'\(?([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\)?\s+at\s+([0-9a-fA-F:]+)')
 
-    seen_macs = set()
     for line in output.splitlines():
         if "incomplete" in line:
             continue

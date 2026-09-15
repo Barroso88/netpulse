@@ -8,7 +8,8 @@ import os
 import json
 from datetime import datetime
 
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "netpulse.db")
+DATA_DIR = os.environ.get("NETPULSE_DATA_DIR") or os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.environ.get("NETPULSE_DB_PATH") or os.path.join(DATA_DIR, "netpulse.db")
 
 def get_db_connection():
     conn = sqlite3.connect(DB_PATH)
