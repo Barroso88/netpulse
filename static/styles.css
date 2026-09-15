@@ -498,3 +498,68 @@ input:checked + .agent-slider:before {
   transform: scale(1);
 }
 
+/* ========================================================================= */
+/* MOBILE RESPONSIVENESS & TOUCH ERGONOMICS                                  */
+/* ========================================================================= */
+
+/* Mobile Bottom Navigation */
+.mobile-nav-btn {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  transition: all 0.18s ease;
+}
+.mobile-nav-btn:active {
+  transform: scale(0.92);
+}
+.mobile-nav-btn.active {
+  color: #22d3ee !important;
+}
+
+/* Hide Scrollbar for Horizontal Scrolling */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Mobile Screen Specific Tweaks (< 640px) */
+@media (max-width: 640px) {
+  body {
+    -webkit-font-smoothing: antialiased;
+    touch-action: manipulation;
+  }
+  
+  /* Prevent iOS Safari from auto-zooming on focus */
+  input[type="text"],
+  input[type="password"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+  
+  /* Device card compact layout */
+  .device-card {
+    padding: 1rem !important;
+    border-radius: 1rem !important;
+  }
+  
+  /* Action buttons min height for touch */
+  .device-card-btn {
+    min-height: 34px;
+    padding: 6px 12px !important;
+  }
+  
+  /* Copyable badge tap area */
+  .copyable-badge {
+    padding: 4px 8px !important;
+  }
+
+  /* Table momentum scrolling */
+  #container-table-view > div {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+

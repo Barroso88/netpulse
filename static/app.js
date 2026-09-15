@@ -7,7 +7,7 @@ let state = {
   devices: [],
   networkInfo: { gateway_ip: "192.168.1.1", local_ip: "127.0.0.1", interface: "en0" },
   activeTab: "devices",
-  viewMode: localStorage.getItem("netpulse_view_mode") || "grid", // 'grid' | 'table'
+  viewMode: (window.innerWidth < 768) ? "grid" : (localStorage.getItem("netpulse_view_mode") || "grid"), // 'grid' | 'table'
   sortColumn: "ip",
   sortDirection: "asc",
   selectedCategory: "all",
@@ -333,6 +333,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     lucide.createIcons();
   }
   updatePrivacyIcon();
+  setViewMode(state.viewMode);
   const isAuth = await checkAuthStatus();
   if (isAuth) {
     initAppData();
@@ -354,12 +355,18 @@ document.addEventListener("DOMContentLoaded", async () => {
 function switchTab(tabId) {
   state.activeTab = tabId;
 
-  // Toggle Tab Content
+  // Toggle Tab Content (Desktop & Mobile Sync)
   ["devices", "latency", "speedtest", "alerts", "agents"].forEach(t => {
     const el = document.getElementById(`tab-content-${t}`);
     const btn = document.getElementById(`tab-btn-${t}`);
+    const mBtn = document.getElementById(`m-tab-${t}`);
     if (el) el.classList.toggle("hidden", t !== tabId);
     if (btn) btn.classList.toggle("active", t === tabId);
+    if (mBtn) {
+      mBtn.classList.toggle("active", t === tabId);
+      mBtn.classList.toggle("text-cyan-400", t === tabId);
+      mBtn.classList.toggle("text-slate-400", t !== tabId);
+    }
   });
 
   if (tabId === "latency") {
@@ -1297,6 +1304,10 @@ async function fetchAlerts() {
     if (tabCount) {
       tabCount.textContent = unread;
       tabCount.classList.toggle("hidden", unread === 0);
+    }
+    const mBadge = document.getElementById("m-alerts-badge");
+    if (mBadge) {
+      mBadge.classList.toggle("hidden", unread === 0);
     }
 
     renderAlertsList();
