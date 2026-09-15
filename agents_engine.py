@@ -363,7 +363,7 @@ class AgentsEngine:
         devices = database.get_all_devices()
         known_brands = [
             "home assistant", "raspberry", "nvidia", "truenas", "unraid",
-            "sonoff", "tuya", "xiaomi", "samsung", "amazon", "philips",
+            "sonoff", "ewelink", "coolkit", "tuya", "xiaomi", "samsung", "amazon", "philips",
             "google", "apple", "playstation", "msi", "huawei", "intel",
             "asus", "tp-link", "meo", "altice", "arcadyan", "router principal", "lg", "espressif",
             "sonos", "nintendo", "synology", "shelly", "dell", "ubiquiti",
