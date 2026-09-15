@@ -37,19 +37,82 @@ header {
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* KPI Hero Metric Cards */
+/* KPI Hero Metric Cards - Distinct Vibrant Executive Themes */
 .kpi-card {
-  background: rgba(13, 19, 33, 0.72) !important;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.09);
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.25rem !important;
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.65);
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 1.25rem;
+  right: 1.25rem;
+  height: 2.5px;
+  opacity: 0.95;
+}
 .kpi-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(6, 182, 212, 0.4) !important;
-  box-shadow: 0 12px 30px -4px rgba(0, 0, 0, 0.6), 0 0 18px rgba(6, 182, 212, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  transform: translateY(-2px) scale(1.008);
+  filter: brightness(1.08);
+}
+
+/* KPI 1: Dispositivos - Solid Deep Cyan */
+.kpi-card-devices {
+  background: linear-gradient(135deg, #0e4e63 0%, #083344 100%) !important;
+  border: 1.5px solid #06b6d4 !important;
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.65), 0 0 16px -4px rgba(6, 182, 212, 0.45);
+}
+.kpi-card-devices::before {
+  background: linear-gradient(90deg, transparent, #22d3ee, transparent);
+}
+.kpi-card-devices:hover {
+  border-color: #67e8f9 !important;
+  box-shadow: 0 14px 32px -4px rgba(0, 0, 0, 0.75), 0 0 24px -2px rgba(6, 182, 212, 0.65);
+}
+
+/* KPI 2: Latência Router - Solid Electric Cobalt Blue */
+.kpi-card-router {
+  background: linear-gradient(135deg, #1e3a8a 0%, #172554 100%) !important;
+  border: 1.5px solid #3b82f6 !important;
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.65), 0 0 16px -4px rgba(59, 130, 246, 0.45);
+}
+.kpi-card-router::before {
+  background: linear-gradient(90deg, transparent, #60a5fa, transparent);
+}
+.kpi-card-router:hover {
+  border-color: #93c5fd !important;
+  box-shadow: 0 14px 32px -4px rgba(0, 0, 0, 0.75), 0 0 24px -2px rgba(59, 130, 246, 0.65);
+}
+
+/* KPI 3: Internet (WAN) - Solid Emerald Forest Green */
+.kpi-card-wan {
+  background: linear-gradient(135deg, #064e3b 0%, #022c22 100%) !important;
+  border: 1.5px solid #10b981 !important;
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.65), 0 0 16px -4px rgba(16, 185, 129, 0.45);
+}
+.kpi-card-wan::before {
+  background: linear-gradient(90deg, transparent, #34d399, transparent);
+}
+.kpi-card-wan:hover {
+  border-color: #6ee7b7 !important;
+  box-shadow: 0 14px 32px -4px rgba(0, 0, 0, 0.75), 0 0 24px -2px rgba(16, 185, 129, 0.65);
+}
+
+/* KPI 4: Velocidade - Solid Royal Violet Purple */
+.kpi-card-speed {
+  background: linear-gradient(135deg, #581c87 0%, #3b0764 100%) !important;
+  border: 1.5px solid #a855f7 !important;
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.65), 0 0 16px -4px rgba(168, 85, 247, 0.45);
+}
+.kpi-card-speed::before {
+  background: linear-gradient(90deg, transparent, #c084fc, transparent);
+}
+.kpi-card-speed:hover {
+  border-color: #d8b4fe !important;
+  box-shadow: 0 14px 32px -4px rgba(0, 0, 0, 0.75), 0 0 24px -2px rgba(168, 85, 247, 0.65);
 }
 
 /* Tab Navigation Styling */
