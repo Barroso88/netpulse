@@ -7,5 +7,9 @@ services:
     environment:
       - PORT=8888
       - NETPULSE_DATA_DIR=/data
+      # Autenticação (Opcional - protege o painel com palavra-passe)
+      # - NETPULSE_AUTH_PASSWORD=uma_senha_forte_aqui
+      # PostgreSQL (Opcional - se omitido, utiliza SQLite /data/netpulse.db automaticamente)
+      # - DATABASE_URL=postgresql://user:password@192.168.1.67:5432/netpulse
     volumes:
       - ./data:/data

@@ -12,6 +12,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
+# Install Python dependencies for PostgreSQL support
+RUN pip install --no-cache-dir psycopg2-binary
+
 # Copy project files
 COPY . /app/
 

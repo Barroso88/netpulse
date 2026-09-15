@@ -87,6 +87,17 @@
 
       <!-- Action Buttons -->
       <div class="flex items-center gap-2.5">
+        <!-- Privacy Mode Toggle -->
+        <button id="btn-privacy-toggle" onclick="togglePrivacyMode()" class="p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-cyan-400 border border-darkborder transition" title="Modo Privacidade (Mascarar IPs e MACs)">
+          <i id="privacy-icon" data-lucide="eye" class="w-4 h-4"></i>
+        </button>
+
+        <!-- Database Engine Badge -->
+        <span id="header-db-badge" class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-900/90 border border-slate-800 text-[11px] font-mono text-slate-300" title="Motor de Base de Dados Ativo">
+          <i data-lucide="database" class="w-3.5 h-3.5 text-cyan-400"></i>
+          <span id="header-db-name">SQLite</span>
+        </span>
+
         <!-- Alerts Trigger -->
         <button id="btn-open-alerts" onclick="openAlertsDrawer()" class="relative p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-darkborder transition">
           <i data-lucide="bell" class="w-4 h-4"></i>
@@ -692,6 +703,33 @@
       <button onclick="markAllAlertsRead(); closeAlertsDrawer();" class="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 font-semibold text-xs border border-darkborder transition">
         Marcar Todas como Lidas
       </button>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: LOGIN / AUTHENTICATION                                            -->
+  <!-- ========================================================================= -->
+  <div id="modal-auth" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-2xl">
+    <div class="w-full max-w-sm p-7 rounded-3xl bg-darkcard/95 border border-white/15 shadow-2xl space-y-5 text-center">
+      <div class="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-tr from-cyan-600 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/30">
+        <i data-lucide="shield-check" class="w-7 h-7"></i>
+      </div>
+      <div>
+        <h3 class="text-xl font-black text-white tracking-tight">NetPulse Acesso Seguro</h3>
+        <p class="text-xs text-slate-400 mt-1.5 leading-relaxed">Este painel está protegido. Introduza a palavra-passe mestra para aceder à rede.</p>
+      </div>
+      <form id="auth-form" onsubmit="handleLoginSubmit(event)" class="space-y-4 pt-1">
+        <div class="relative">
+          <input type="password" id="auth-input-password" placeholder="Palavra-passe mestra..." required class="w-full px-4 py-3 rounded-xl bg-slate-900/90 border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-cyan-400 transition font-mono pr-11">
+          <button type="button" onclick="togglePasswordVisibility()" class="absolute right-3.5 top-3.5 text-slate-400 hover:text-white transition">
+            <i id="auth-eye-icon" data-lucide="eye" class="w-4 h-4"></i>
+          </button>
+        </div>
+        <div id="auth-error-msg" class="hidden p-2.5 rounded-lg bg-rose-500/15 border border-rose-500/30 text-xs text-rose-300 font-medium"></div>
+        <button type="submit" id="auth-btn-submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-sm shadow-lg shadow-cyan-500/25 transition active:scale-95">
+          Desbloquear Painel
+        </button>
+      </form>
     </div>
   </div>
 

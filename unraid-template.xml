@@ -9,7 +9,7 @@
   <Privileged>true</Privileged>
   <Support>https://github.com/Barroso88/netpulse</Support>
   <Project>https://github.com/Barroso88/netpulse</Project>
-  <Overview>NetPulse - Monitor de Rede em Tempo Real, Agentes Autónomos &amp; Dashboard Cyber Glass 2.0. Utiliza modo de rede 'host' para auditar a tabela ARP física e monitorizar os equipamentos da sua rede local.</Overview>
+  <Overview>NetPulse - Monitor de Rede em Tempo Real, Agentes Autónomos &amp; Dashboard Cyber Glass 2.0. Suporta SQLite nativo e PostgreSQL externo (pgAdmin). Dispõe de autenticação por palavra-passe e modo de privacidade para exposição segura via Cloudflare Tunnel.</Overview>
   <Category>Network:Management Network:Other</Category>
   <WebUI>http://[IP]:[PORT:8888]</WebUI>
   <TemplateURL/>
@@ -23,4 +23,6 @@
   <Requires/>
   <Config Name="WebUI Port" Target="8888" Default="8888" Mode="tcp" Description="Porta da Interface Web (padrão 8888)" Type="Port" Display="always" Required="true" Mask="false">8888</Config>
   <Config Name="App Data" Target="/data" Default="/mnt/user/appdata/netpulse" Mode="rw" Description="Diretoria persistente para a base de dados SQLite (netpulse.db)" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/netpulse</Config>
+  <Config Name="Palavra-passe de Acesso" Target="NETPULSE_AUTH_PASSWORD" Default="" Mode="" Description="Palavra-passe para bloquear o painel com ecrã de autenticação Glassmorphic. Deixe em branco para acesso livre na LAN." Type="Variable" Display="always" Required="false" Mask="true"></Config>
+  <Config Name="PostgreSQL Database URL" Target="DATABASE_URL" Default="" Mode="" Description="URL de ligação PostgreSQL (ex: postgresql://postgres:senha@192.168.1.67:5432/netpulse). Se deixado em branco, utiliza SQLite em /data/netpulse.db com migração automática." Type="Variable" Display="always" Required="false" Mask="false"></Config>
 </Container>

@@ -1,6 +1,7 @@
 """
 NetPulse - Main HTTP Server & REST API
 Multi-threaded, zero-dependency REST server serving the frontend SPA and network services.
+Supports Dual-Engine Database (PostgreSQL / SQLite), Authentication & Security Hardening.
 """
 
 import http.server
@@ -11,6 +12,8 @@ import mimetypes
 import sys
 import threading
 import time
+import secrets
+from datetime import datetime, date
 
 import database
 import network_scanner
@@ -22,18 +25,41 @@ import agents_engine
 PORT = int(os.environ.get("PORT", 8888))
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 
+# Authentication configuration
+AUTH_PASSWORD = (os.environ.get("NETPULSE_AUTH_PASSWORD") or os.environ.get("NETPULSE_AUTH_PASS") or "").strip()
+AUTH_ENABLED = bool(AUTH_PASSWORD)
+
+ACTIVE_SESSIONS = {}   # token -> expiry_timestamp
+LOGIN_ATTEMPTS = {}    # ip -> [attempt_timestamps]
+
+def json_serial(obj):
+    if isinstance(obj, (datetime, date)):
+        return obj.strftime("%Y-%m-%d %H:%M:%S")
+    raise TypeError(f"Type {type(obj)} not serializable")
+
 class NetPulseHandler(http.server.SimpleHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
 
-    def send_json(self, data, status=200):
-        body = json.dumps(data, indent=2).encode("utf-8")
+    def send_json(self, data, status=200, extra_headers=None):
+        body = json.dumps(data, default=json_serial, indent=2).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Connection", "close")
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        
+        # Security hardening headers
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("X-XSS-Protection", "1; mode=block")
+        self.send_header("Referrer-Policy", "strict-origin-when-cross-origin")
+        
+        if extra_headers:
+            for k, v in extra_headers.items():
+                self.send_header(k, v)
+                
         self.end_headers()
         self.wfile.write(body)
         self.close_connection = True
@@ -42,13 +68,55 @@ class NetPulseHandler(http.server.SimpleHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header("X-Content-Type-Options", "nosniff")
         self.end_headers()
+
+    def check_authenticated(self):
+        if not AUTH_ENABLED:
+            return True
+
+        # 1. Check Cookie
+        cookie_header = self.headers.get("Cookie", "")
+        token = None
+        for cookie in cookie_header.split(";"):
+            c = cookie.strip()
+            if c.startswith("netpulse_session="):
+                token = c.split("=", 1)[1]
+                break
+
+        # 2. Check Authorization Header (Bearer <token>)
+        if not token:
+            auth_header = self.headers.get("Authorization", "")
+            if auth_header.startswith("Bearer "):
+                token = auth_header.split(" ", 1)[1]
+
+        if token and token in ACTIVE_SESSIONS:
+            if time.time() < ACTIVE_SESSIONS[token]:
+                return True
+            else:
+                del ACTIVE_SESSIONS[token]
+
+        return False
 
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
         query = urllib.parse.parse_qs(parsed.query)
+
+        # Public Auth Status Route
+        if path == "/api/auth/status":
+            return self.send_json({
+                "auth_required": AUTH_ENABLED,
+                "authenticated": self.check_authenticated(),
+                "db_engine": "PostgreSQL" if database.is_postgres_active() else "SQLite"
+            })
+
+        # Protect all other /api/ routes if auth is enabled
+        if path.startswith("/api/"):
+            if not self.check_authenticated():
+                return self.send_json({"error": "Autenticação necessária", "auth_required": True}, 401)
 
         # REST API Routes
         if path == "/api/devices":
@@ -100,7 +168,7 @@ class NetPulseHandler(http.server.SimpleHTTPRequestHandler):
                 if not target:
                     return self.send_json({"error": "Dispositivo não encontrado"}, 404)
                 
-                ping_res = latency_monitor.measure_ping_socket(target["ip"], count=3)
+                ping_res = latency_monitor.measure_ping_socket(target["ip"], count=2)
                 return self.send_json({"device_id": device_id, "ip": target["ip"], "ping": ping_res})
             except Exception as e:
                 return self.send_json({"error": str(e)}, 500)
@@ -130,6 +198,41 @@ class NetPulseHandler(http.server.SimpleHTTPRequestHandler):
                 body_data = json.loads(raw_body)
             except Exception:
                 pass
+
+        # Public Login Route
+        if path == "/api/auth/login":
+            if not AUTH_ENABLED:
+                return self.send_json({"success": True, "auth_required": False})
+
+            # Rate limit protection against brute-force (max 10 attempts per minute per IP)
+            client_ip = self.client_address[0]
+            now = time.time()
+            attempts = [t for t in LOGIN_ATTEMPTS.get(client_ip, []) if now - t < 60]
+            if len(attempts) >= 10:
+                return self.send_json({"error": "Demasiadas tentativas incorretas. Aguarde 1 minuto."}, 429)
+
+            pwd = body_data.get("password", "")
+            if pwd == AUTH_PASSWORD:
+                token = secrets.token_hex(24)
+                ACTIVE_SESSIONS[token] = now + (86400 * 30)
+                LOGIN_ATTEMPTS[client_ip] = []
+                cookie_val = f"netpulse_session={token}; Path=/; Max-Age={86400 * 30}; SameSite=Lax"
+                return self.send_json(
+                    {"success": True, "token": token},
+                    extra_headers={"Set-Cookie": cookie_val}
+                )
+            else:
+                attempts.append(now)
+                LOGIN_ATTEMPTS[client_ip] = attempts
+                return self.send_json({"error": "Palavra-passe incorreta"}, 401)
+
+        elif path == "/api/auth/logout":
+            cookie_val = "netpulse_session=; Path=/; Max-Age=0; SameSite=Lax"
+            return self.send_json({"success": True}, extra_headers={"Set-Cookie": cookie_val})
+
+        # Protect all other POST routes
+        if not self.check_authenticated():
+            return self.send_json({"error": "Autenticação necessária", "auth_required": True}, 401)
 
         if path == "/api/scan":
             quick = body_data.get("quick", False)
@@ -181,7 +284,6 @@ class NetPulseHandler(http.server.SimpleHTTPRequestHandler):
             return self.send_json({"success": True})
 
         elif path.startswith("/api/agents/") and path.endswith("/toggle"):
-            # /api/agents/<agent_id>/toggle
             parts = path.split("/")
             try:
                 agent_id = parts[3]
@@ -192,7 +294,6 @@ class NetPulseHandler(http.server.SimpleHTTPRequestHandler):
                 return self.send_json({"error": str(e)}, 500)
 
         elif path.startswith("/api/agents/") and path.endswith("/run"):
-            # /api/agents/<agent_id>/run
             parts = path.split("/")
             try:
                 agent_id = parts[3]
@@ -212,6 +313,13 @@ class NetPulseHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header("Content-Length", str(len(content)))
             self.send_header("Connection", "close")
             self.send_header("Cache-Control", "no-cache, must-revalidate")
+            
+            # Security headers
+            self.send_header("X-Frame-Options", "DENY")
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("X-XSS-Protection", "1; mode=block")
+            self.send_header("Referrer-Policy", "strict-origin-when-cross-origin")
+            
             self.end_headers()
             self.wfile.write(content)
             self.close_connection = True
@@ -219,7 +327,6 @@ class NetPulseHandler(http.server.SimpleHTTPRequestHandler):
             self.send_error(500, f"Erro ao ler ficheiro: {e}")
 
 def background_monitor():
-    """Background task running periodic latency health checks every 30 seconds."""
     while True:
         try:
             gw = network_scanner.get_default_gateway()
@@ -231,27 +338,29 @@ def background_monitor():
 
 def main():
     database.init_db()
-    # Initial quick scan on startup to populate devices immediately
     print("[NetPulse] Inicializando base de dados e inventário de rede...")
     try:
         network_scanner.scan_network_full(quick=True)
     except Exception as e:
         print(f"[NetPulse] Aviso durante varrimento inicial: {e}")
 
-    # Start autonomous agents engine
     try:
         agents_engine.get_engine().start()
         print("[NetPulse] 🤖 Agentes Autónomos iniciados com sucesso.")
     except Exception as e:
         print(f"[NetPulse] Erro ao iniciar agentes: {e}")
 
-    # Start background latency monitor thread
     bg_thread = threading.Thread(target=background_monitor, daemon=True)
     bg_thread.start()
 
     server = http.server.ThreadingHTTPServer(("0.0.0.0", PORT), NetPulseHandler)
+    engine_name = "🐘 PostgreSQL" if database.is_postgres_active() else "🗄️ SQLite"
+    auth_status = "🔒 Ativa (Palavra-passe configurada)" if AUTH_ENABLED else "🔓 Desativada (Acesso Livre na LAN)"
+    
     print(f"============================================================")
     print(f"  ⚡ NetPulse - Network Analyzer & Sentinel WebApp")
+    print(f"  💾 Motor de Base de Dados: {engine_name}")
+    print(f"  🛡️ Autenticação de Segurança: {auth_status}")
     print(f"  🚀 Servidor ativo em: http://localhost:{PORT}")
     print(f"  🌐 Acessível na rede em: http://{network_scanner.get_local_interface_and_ip()[1]}:{PORT}")
     print(f"============================================================")

@@ -16,7 +16,10 @@ let state = {
   speedtests: [],
   latencyChart: null,
   isScanning: false,
-  isTestingSpeed: false
+  isTestingSpeed: false,
+  privacyMode: localStorage.getItem("netpulse_privacy_mode") === "true",
+  authRequired: false,
+  isAuthenticated: true
 };
 
 const CATEGORIES = {
@@ -173,11 +176,145 @@ function getDeviceBrand(d) {
   };
 }
 
-// Initialize Application
-document.addEventListener("DOMContentLoaded", () => {
-  if (window.lucide) {
-    lucide.createIcons();
+// Privacy Masking Helpers
+function maskIp(ip) {
+  if (!state.privacyMode || !ip) return ip;
+  const parts = ip.split(".");
+  if (parts.length === 4) return `${parts[0]}.${parts[1]}.${parts[2]}.•••`;
+  return ip;
+}
+
+function maskMac(mac) {
+  if (!state.privacyMode || !mac) return mac;
+  const parts = mac.split(":");
+  if (parts.length === 6) return `${parts[0]}:${parts[1]}:${parts[2]}:••:••:••`;
+  return mac;
+}
+
+function togglePrivacyMode() {
+  state.privacyMode = !state.privacyMode;
+  localStorage.setItem("netpulse_privacy_mode", state.privacyMode ? "true" : "false");
+  updatePrivacyIcon();
+  renderDevices();
+  updateNetworkHeader();
+  showToast(state.privacyMode ? "Modo Privacidade Ativado (IPs e MACs ocultados)" : "Modo Privacidade Desativado", "info");
+}
+
+function updatePrivacyIcon() {
+  const icon = document.getElementById("privacy-icon");
+  const btn = document.getElementById("btn-privacy-toggle");
+  if (!icon || !btn) return;
+  if (state.privacyMode) {
+    icon.setAttribute("data-lucide", "eye-off");
+    btn.classList.add("text-cyan-400", "border-cyan-500/50");
+  } else {
+    icon.setAttribute("data-lucide", "eye");
+    btn.classList.remove("text-cyan-400", "border-cyan-500/50");
   }
+  if (window.lucide) lucide.createIcons();
+}
+
+// Authentication & Session Protection
+function showAuthModal() {
+  const modal = document.getElementById("modal-auth");
+  if (modal) {
+    modal.classList.remove("hidden");
+    const inp = document.getElementById("auth-input-password");
+    if (inp) {
+      inp.value = "";
+      setTimeout(() => inp.focus(), 100);
+    }
+  }
+}
+
+function hideAuthModal() {
+  const modal = document.getElementById("modal-auth");
+  if (modal) modal.classList.add("hidden");
+}
+
+function togglePasswordVisibility() {
+  const inp = document.getElementById("auth-input-password");
+  const icon = document.getElementById("auth-eye-icon");
+  if (!inp || !icon) return;
+  if (inp.type === "password") {
+    inp.type = "text";
+    icon.setAttribute("data-lucide", "eye-off");
+  } else {
+    inp.type = "password";
+    icon.setAttribute("data-lucide", "eye");
+  }
+  if (window.lucide) lucide.createIcons();
+}
+
+async function handleLoginSubmit(e) {
+  e.preventDefault();
+  const inp = document.getElementById("auth-input-password");
+  const btn = document.getElementById("auth-btn-submit");
+  const errMsg = document.getElementById("auth-error-msg");
+  if (!inp || !btn) return;
+
+  btn.disabled = true;
+  btn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin inline mr-1.5"></i> A verificar...`;
+  if (window.lucide) lucide.createIcons();
+  if (errMsg) errMsg.classList.add("hidden");
+
+  try {
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: inp.value })
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      state.isAuthenticated = true;
+      hideAuthModal();
+      showToast("Painel desbloqueado com sucesso!", "success");
+      initAppData();
+    } else {
+      if (errMsg) {
+        errMsg.textContent = data.error || "Palavra-passe incorreta.";
+        errMsg.classList.remove("hidden");
+      }
+      inp.focus();
+      inp.select();
+    }
+  } catch (err) {
+    if (errMsg) {
+      errMsg.textContent = "Erro ao contactar o servidor.";
+      errMsg.classList.remove("hidden");
+    }
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Desbloquear Painel";
+  }
+}
+
+async function checkAuthStatus() {
+  try {
+    const res = await fetch("/api/auth/status");
+    const data = await res.json();
+    if (data.db_engine) {
+      const badge = document.getElementById("header-db-badge");
+      const name = document.getElementById("header-db-name");
+      if (badge && name) {
+        badge.classList.remove("hidden");
+        name.textContent = data.db_engine;
+      }
+    }
+    state.authRequired = !!data.auth_required;
+    state.isAuthenticated = !!data.authenticated;
+    if (state.authRequired && !state.isAuthenticated) {
+      showAuthModal();
+      return false;
+    }
+    hideAuthModal();
+    return true;
+  } catch (err) {
+    return true;
+  }
+}
+
+function initAppData() {
   setViewMode(state.viewMode);
   updateSortIndicators();
   syncSortSelect();
@@ -188,9 +325,22 @@ document.addEventListener("DOMContentLoaded", () => {
   fetchAlerts();
   fetchAgents();
   fetchAgentLogs();
+}
+
+// Initialize Application
+document.addEventListener("DOMContentLoaded", async () => {
+  if (window.lucide) {
+    lucide.createIcons();
+  }
+  updatePrivacyIcon();
+  const isAuth = await checkAuthStatus();
+  if (isAuth) {
+    initAppData();
+  }
 
   // Periodic background refresh
   setInterval(() => {
+    if (!state.isAuthenticated) return;
     if (state.activeTab === "latency" || state.activeTab === "devices") {
       fetchRouterLatency(true);
     } else if (state.activeTab === "agents") {
@@ -249,6 +399,10 @@ function setViewMode(mode) {
 async function fetchDevices() {
   try {
     const res = await fetch("/api/devices");
+    if (res.status === 401) {
+      showAuthModal();
+      return;
+    }
     const data = await res.json();
     state.devices = data.devices || [];
     if (data.network_info) {
@@ -258,7 +412,8 @@ async function fetchDevices() {
     renderKPIs();
     renderCategoryPills();
     renderDevices();
-    document.getElementById("last-updated-text").textContent = `Atualizado: ${new Date().toLocaleTimeString()}`;
+    const lastUp = document.getElementById("last-updated-text");
+    if (lastUp) lastUp.textContent = `Atualizado: ${new Date().toLocaleTimeString()}`;
   } catch (err) {
     console.error("Erro ao carregar dispositivos:", err);
   }
@@ -270,12 +425,12 @@ function updateNetworkHeader() {
   const ifaceEl = document.getElementById("header-iface");
   const subnetEl = document.getElementById("header-subnet");
 
-  if (gwEl) gwEl.textContent = state.networkInfo.gateway_ip || "192.168.1.1";
-  if (locEl) locEl.textContent = state.networkInfo.local_ip || "127.0.0.1";
+  if (gwEl) gwEl.textContent = maskIp(state.networkInfo.gateway_ip || "192.168.1.1");
+  if (locEl) locEl.textContent = maskIp(state.networkInfo.local_ip || "127.0.0.1");
   if (ifaceEl) ifaceEl.textContent = state.networkInfo.interface || "en0";
   if (subnetEl && state.networkInfo.gateway_ip) {
     const prefix = state.networkInfo.gateway_ip.split(".").slice(0, 3).join(".");
-    subnetEl.textContent = `Sub-rede: ${prefix}.0/24`;
+    subnetEl.textContent = state.privacyMode ? "Sub-rede: Protegida (Modo Privacidade)" : `Sub-rede: ${prefix}.0/24`;
   }
 }
 
@@ -631,14 +786,14 @@ function renderDevices() {
 
           <td class="py-3.5 px-4 font-mono font-semibold text-cyan-300">
             <button onclick="copyToClipboard('${d.ip}', 'IP')" class="copyable-badge text-cyan-300" title="Clique para copiar IP">
-              <span>${d.ip}</span>
+              <span>${maskIp(d.ip)}</span>
               <i data-lucide="copy" class="w-3 h-3 copy-icon text-cyan-400"></i>
             </button>
           </td>
 
           <td class="py-3.5 px-4 font-mono text-slate-300 text-[11px]">
             <button onclick="copyToClipboard('${d.mac.toUpperCase()}', 'MAC')" class="copyable-badge text-slate-300" title="Clique para copiar MAC">
-              <span>${d.mac.toUpperCase()}</span>
+              <span>${maskMac(d.mac.toUpperCase())}</span>
               <i data-lucide="copy" class="w-3 h-3 copy-icon text-slate-400"></i>
             </button>
           </td>
@@ -728,14 +883,14 @@ function renderDevices() {
             <div class="flex items-center justify-between">
               <span class="text-slate-300 flex items-center gap-1.5"><i data-lucide="hash" class="w-3 h-3 text-cyan-400"></i> IP:</span>
               <button onclick="copyToClipboard('${d.ip}', 'IP')" class="copyable-badge text-white font-bold text-[13px] tracking-wide" title="Clique para copiar IP">
-                <span>${d.ip}</span>
+                <span>${maskIp(d.ip)}</span>
                 <i data-lucide="copy" class="w-3 h-3 copy-icon text-cyan-300"></i>
               </button>
             </div>
             <div class="flex items-center justify-between">
               <span class="text-slate-300 flex items-center gap-1.5"><i data-lucide="cpu" class="w-3 h-3 text-purple-400"></i> MAC:</span>
               <button onclick="copyToClipboard('${d.mac.toUpperCase()}', 'MAC')" class="copyable-badge text-slate-200 font-semibold text-[11px]" title="Clique para copiar MAC">
-                <span>${d.mac.toUpperCase()}</span>
+                <span>${maskMac(d.mac.toUpperCase())}</span>
                 <i data-lucide="copy" class="w-3 h-3 copy-icon text-slate-400"></i>
               </button>
             </div>
@@ -816,7 +971,7 @@ async function scanDevicePorts(deviceId, ip) {
   const content = document.getElementById("modal-ports-content");
   const subtitle = document.getElementById("modal-ports-subtitle");
 
-  subtitle.textContent = `Varrimento em curso para o IP: ${ip}...`;
+  subtitle.textContent = `Varrimento em curso para o IP: ${maskIp(ip)}...`;
   content.innerHTML = `
     <div class="p-8 text-center text-slate-400 space-y-3">
       <div class="inline-block animate-spin w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full"></div>
@@ -829,7 +984,7 @@ async function scanDevicePorts(deviceId, ip) {
     const res = await fetch(`/api/devices/${deviceId}/scan-ports`, { method: "POST" });
     const data = await res.json();
     const ports = data.open_ports || [];
-    subtitle.textContent = `IP: ${ip} • ${ports.length} portas detetadas`;
+    subtitle.textContent = `IP: ${maskIp(ip)} • ${ports.length} portas detetadas`;
 
     if (ports.length === 0) {
       content.innerHTML = `

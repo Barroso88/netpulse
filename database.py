@@ -1,29 +1,105 @@
 """
-NetPulse - SQLite Database Layer
+NetPulse - Dual Database Layer (PostgreSQL & SQLite)
 Persists device inventory, categorization, custom aliases, security alerts, and network metrics.
+Supports both PostgreSQL (via DATABASE_URL or POSTGRES_* env vars) and SQLite (netpulse.db).
+Includes automatic migration from SQLite to PostgreSQL on first launch.
 """
 
 import sqlite3
 import os
 import json
-from datetime import datetime
+from datetime import datetime, date
+
+DATABASE_URL = os.environ.get("DATABASE_URL")
+POSTGRES_HOST = os.environ.get("POSTGRES_HOST")
+IS_POSTGRES = bool(DATABASE_URL or POSTGRES_HOST)
 
 DATA_DIR = os.environ.get("NETPULSE_DATA_DIR") or os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.environ.get("NETPULSE_DB_PATH") or os.path.join(DATA_DIR, "netpulse.db")
 
+def is_postgres_active() -> bool:
+    return IS_POSTGRES
+
+def get_postgres_connection():
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+    url = DATABASE_URL
+    if not url and POSTGRES_HOST:
+        user = os.environ.get("POSTGRES_USER", "postgres")
+        pwd = os.environ.get("POSTGRES_PASSWORD", "")
+        db = os.environ.get("POSTGRES_DB", "netpulse")
+        port = os.environ.get("POSTGRES_PORT", "5432")
+        url = f"postgresql://{user}:{pwd}@{POSTGRES_HOST}:{port}/{db}"
+    return psycopg2.connect(url, cursor_factory=RealDictCursor)
+
+class CursorWrapper:
+    def __init__(self, raw_cursor, is_pg=False):
+        self.raw = raw_cursor
+        self.is_pg = is_pg
+
+    def execute(self, query, params=None):
+        if self.is_pg:
+            q = query.replace("?", "%s")
+            q = q.replace("INSERT OR IGNORE INTO", "INSERT INTO")
+            if params is not None:
+                return self.raw.execute(q, params)
+            return self.raw.execute(q)
+        else:
+            if params is not None:
+                return self.raw.execute(query, params)
+            return self.raw.execute(query)
+
+    def fetchone(self):
+        row = self.raw.fetchone()
+        if row is None:
+            return None
+        return dict(row)
+
+    def fetchall(self):
+        rows = self.raw.fetchall()
+        return [dict(r) for r in rows]
+
+    @property
+    def lastrowid(self):
+        return getattr(self.raw, "lastrowid", None)
+
+class DBWrapper:
+    def __init__(self, conn, is_pg=False):
+        self.conn = conn
+        self.is_pg = is_pg
+
+    def cursor(self):
+        return CursorWrapper(self.conn.cursor(), self.is_pg)
+
+    def commit(self):
+        self.conn.commit()
+
+    def close(self):
+        self.conn.close()
+
 def get_db_connection():
+    if IS_POSTGRES:
+        try:
+            conn = get_postgres_connection()
+            return DBWrapper(conn, is_pg=True)
+        except Exception as e:
+            print(f"⚠️ Falha ao ligar ao PostgreSQL ({e}). A usar SQLite de contingência.")
+
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
-    return conn
+    return DBWrapper(conn, is_pg=False)
 
 def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Devices table
-    cursor.execute("""
+    id_type = "SERIAL PRIMARY KEY" if conn.is_pg else "INTEGER PRIMARY KEY AUTOINCREMENT"
+    on_conflict_ignore = "ON CONFLICT DO NOTHING" if conn.is_pg else ""
+
+    # 1. Devices table
+    cursor.execute(f"""
     CREATE TABLE IF NOT EXISTS devices (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id {id_type},
         ip TEXT NOT NULL,
         mac TEXT UNIQUE NOT NULL,
         hostname TEXT,
@@ -40,10 +116,10 @@ def init_db():
     );
     """)
 
-    # Security & Discovery Alerts
-    cursor.execute("""
+    # 2. Security Alerts
+    cursor.execute(f"""
     CREATE TABLE IF NOT EXISTS alerts (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id {id_type},
         device_mac TEXT,
         device_ip TEXT,
         alert_type TEXT NOT NULL,
@@ -54,10 +130,10 @@ def init_db():
     );
     """)
 
-    # Speedtest History
-    cursor.execute("""
+    # 3. Speedtests
+    cursor.execute(f"""
     CREATE TABLE IF NOT EXISTS speedtests (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id {id_type},
         download_mbps REAL NOT NULL,
         upload_mbps REAL NOT NULL,
         ping_ms REAL NOT NULL,
@@ -67,10 +143,10 @@ def init_db():
     );
     """)
 
-    # Latency History
-    cursor.execute("""
+    # 4. Latency History
+    cursor.execute(f"""
     CREATE TABLE IF NOT EXISTS latency_history (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id {id_type},
         gateway_ip TEXT,
         gateway_ms REAL,
         dns_ms REAL,
@@ -80,7 +156,7 @@ def init_db():
     );
     """)
 
-    # Autonomous Network Agents Configuration
+    # 5. Autonomous Agents Configs
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS agent_configs (
         agent_id TEXT PRIMARY KEY,
@@ -94,10 +170,10 @@ def init_db():
     );
     """)
 
-    # Autonomous Network Agents Event & Activity Log
-    cursor.execute("""
+    # 6. Autonomous Agents Logs
+    cursor.execute(f"""
     CREATE TABLE IF NOT EXISTS agent_logs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id {id_type},
         agent_id TEXT NOT NULL,
         level TEXT DEFAULT 'INFO',
         message TEXT NOT NULL,
@@ -114,19 +190,106 @@ def init_db():
         ("brand_stylist", "Agente de Identidade Visual & Marcas", "Audita e cataloga marcas oficiais de hardware, mantendo a renderização de logótipos nas cores autênticas e sem limites.", "visual", 1, 60)
     ]
     for aid, name, desc, cat, enabled, interval in default_agents:
-        cursor.execute("""
-        INSERT OR IGNORE INTO agent_configs (agent_id, name, description, category, is_enabled, interval_seconds, stats_json)
-        VALUES (?, ?, ?, ?, ?, ?, '{}')
-        """, (aid, name, desc, cat, enabled, interval))
+        if conn.is_pg:
+            cursor.execute("""
+            INSERT INTO agent_configs (agent_id, name, description, category, is_enabled, interval_seconds, stats_json)
+            VALUES (?, ?, ?, ?, ?, ?, '{}')
+            ON CONFLICT (agent_id) DO NOTHING
+            """, (aid, name, desc, cat, enabled, interval))
+        else:
+            cursor.execute("""
+            INSERT OR IGNORE INTO agent_configs (agent_id, name, description, category, is_enabled, interval_seconds, stats_json)
+            VALUES (?, ?, ?, ?, ?, ?, '{}')
+            """, (aid, name, desc, cat, enabled, interval))
 
     conn.commit()
+
+    # If connected to PostgreSQL, migrate any existing SQLite data
+    if conn.is_pg:
+        migrate_sqlite_to_postgres(DB_PATH, conn)
+
     conn.close()
 
+def migrate_sqlite_to_postgres(sqlite_path, pg_wrapper):
+    """Copies existing data from SQLite netpulse.db to PostgreSQL if Postgres tables are empty."""
+    if not os.path.exists(sqlite_path):
+        return
+    try:
+        cur = pg_wrapper.cursor()
+        cur.execute("SELECT COUNT(*) as cnt FROM devices")
+        cnt = cur.fetchone()["cnt"]
+        if cnt > 0:
+            return  # Postgres already seeded with data
+
+        print("🔄 A migrar dados existentes do SQLite para o PostgreSQL...")
+        sq_conn = sqlite3.connect(sqlite_path)
+        sq_conn.row_factory = sqlite3.Row
+        sq_cur = sq_conn.cursor()
+
+        # Migrate devices
+        sq_cur.execute("SELECT * FROM devices")
+        for d in sq_cur.fetchall():
+            cur.execute("""
+                INSERT INTO devices (id, ip, mac, hostname, custom_name, vendor, device_type, status, is_trusted, is_new, first_seen, last_seen, open_ports, notes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT (mac) DO NOTHING
+            """, (
+                d["id"], d["ip"], d["mac"], d["hostname"], d["custom_name"], d["vendor"],
+                d["device_type"], d["status"], d["is_trusted"], d["is_new"],
+                d["first_seen"], d["last_seen"], d["open_ports"], d["notes"]
+            ))
+
+        # Reset devices sequence
+        cur.execute("SELECT setval(pg_get_serial_sequence('devices', 'id'), COALESCE((SELECT MAX(id) FROM devices), 1))")
+
+        # Migrate alerts
+        sq_cur.execute("SELECT * FROM alerts")
+        for a in sq_cur.fetchall():
+            cur.execute("""
+                INSERT INTO alerts (id, device_mac, device_ip, alert_type, message, severity, is_read, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT DO NOTHING
+            """, (a["id"], a["device_mac"], a["device_ip"], a["alert_type"], a["message"], a["severity"], a["is_read"], a["created_at"]))
+        cur.execute("SELECT setval(pg_get_serial_sequence('alerts', 'id'), COALESCE((SELECT MAX(id) FROM alerts), 1))")
+
+        # Migrate agent configs
+        sq_cur.execute("SELECT * FROM agent_configs")
+        for c in sq_cur.fetchall():
+            cur.execute("""
+                INSERT INTO agent_configs (agent_id, name, description, category, is_enabled, interval_seconds, last_run, stats_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT (agent_id) DO UPDATE SET 
+                    is_enabled = EXCLUDED.is_enabled,
+                    stats_json = EXCLUDED.stats_json
+            """, (c["agent_id"], c["name"], c["description"], c["category"], c["is_enabled"], c["interval_seconds"], c["last_run"], c["stats_json"]))
+
+        # Migrate latency history
+        sq_cur.execute("SELECT * FROM latency_history")
+        for l in sq_cur.fetchall():
+            cur.execute("""
+                INSERT INTO latency_history (id, gateway_ip, gateway_ms, dns_ms, jitter_ms, packet_loss, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT DO NOTHING
+            """, (l["id"], l["gateway_ip"], l["gateway_ms"], l["dns_ms"], l["jitter_ms"], l["packet_loss"], l["timestamp"]))
+        cur.execute("SELECT setval(pg_get_serial_sequence('latency_history', 'id'), COALESCE((SELECT MAX(id) FROM latency_history), 1))")
+
+        # Migrate speedtests
+        sq_cur.execute("SELECT * FROM speedtests")
+        for s in sq_cur.fetchall():
+            cur.execute("""
+                INSERT INTO speedtests (id, download_mbps, upload_mbps, ping_ms, jitter_ms, server_info, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT DO NOTHING
+            """, (s["id"], s["download_mbps"], s["upload_mbps"], s["ping_ms"], s["jitter_ms"], s["server_info"], s["created_at"]))
+        cur.execute("SELECT setval(pg_get_serial_sequence('speedtests', 'id'), COALESCE((SELECT MAX(id) FROM speedtests), 1))")
+
+        pg_wrapper.commit()
+        sq_conn.close()
+        print("✅ Migração de SQLite para PostgreSQL concluída com sucesso!")
+    except Exception as e:
+        print(f"⚠️ Aviso na migração para PostgreSQL: {e}")
+
 def upsert_device(ip, mac, hostname, vendor, device_type="unknown"):
-    """
-    Inserts a newly discovered device or updates an existing one.
-    Returns (device_dict, is_new_device).
-    """
     mac = mac.lower().strip()
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -137,20 +300,27 @@ def upsert_device(ip, mac, hostname, vendor, device_type="unknown"):
     is_new = False
     if existing is None:
         is_new = True
-        cursor.execute("""
-            INSERT INTO devices (ip, mac, hostname, vendor, device_type, status, is_trusted, is_new, last_seen)
-            VALUES (?, ?, ?, ?, ?, 'online', 0, 1, CURRENT_TIMESTAMP)
-        """, (ip, mac, hostname, vendor, device_type))
-        device_id = cursor.lastrowid
+        if conn.is_pg:
+            cursor.raw.execute("""
+                INSERT INTO devices (ip, mac, hostname, vendor, device_type, status, is_trusted, is_new, last_seen)
+                VALUES (%s, %s, %s, %s, %s, 'online', 0, 1, CURRENT_TIMESTAMP)
+                RETURNING id
+            """, (ip, mac, hostname, vendor, device_type))
+            r = cursor.raw.fetchone()
+            device_id = r["id"] if isinstance(r, dict) else r[0]
+        else:
+            cursor.execute("""
+                INSERT INTO devices (ip, mac, hostname, vendor, device_type, status, is_trusted, is_new, last_seen)
+                VALUES (?, ?, ?, ?, ?, 'online', 0, 1, CURRENT_TIMESTAMP)
+            """, (ip, mac, hostname, vendor, device_type))
+            device_id = cursor.lastrowid
 
-        # Create security alert for new device
         cursor.execute("""
             INSERT INTO alerts (device_mac, device_ip, alert_type, message, severity)
             VALUES (?, ?, 'new_device', ?, 'warning')
         """, (mac, ip, f"Novo dispositivo detetado na rede: {ip} ({vendor or 'Desconhecido'})"))
     else:
         device_id = existing["id"]
-        # Update IP, status, and last seen
         new_hostname = hostname if (hostname and hostname != "?") else existing["hostname"]
         new_vendor = vendor if (vendor and vendor != "Desconhecido") else existing["vendor"]
         curr_type = existing["device_type"]
@@ -165,17 +335,15 @@ def upsert_device(ip, mac, hostname, vendor, device_type="unknown"):
 
     conn.commit()
     cursor.execute("SELECT * FROM devices WHERE id = ?", (device_id,))
-    row = cursor.fetchone()
-    device_dict = dict(row)
+    device_dict = cursor.fetchone()
     conn.close()
     return device_dict, is_new
 
 def mark_offline_stale_devices(active_macs):
-    """Marks devices not seen in the latest active MAC set as offline."""
     conn = get_db_connection()
     cursor = conn.cursor()
-    placeholders = ",".join(["?"] * len(active_macs)) if active_macs else "''"
     if active_macs:
+        placeholders = ",".join(["?"] * len(active_macs))
         cursor.execute(f"UPDATE devices SET status = 'offline' WHERE mac NOT IN ({placeholders})", list(active_macs))
     conn.commit()
     conn.close()
@@ -251,8 +419,7 @@ def get_recent_speedtests(limit=10):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM speedtests ORDER BY id DESC LIMIT ?", (limit,))
-    rows = cursor.fetchall()
-    res = [dict(r) for r in rows]
+    res = cursor.fetchall()
     conn.close()
     return res
 
@@ -263,7 +430,8 @@ def add_latency_sample(gateway_ip, gateway_ms, dns_ms, jitter_ms, packet_loss=0.
         INSERT INTO latency_history (gateway_ip, gateway_ms, dns_ms, jitter_ms, packet_loss)
         VALUES (?, ?, ?, ?, ?)
     """, (gateway_ip, gateway_ms, dns_ms, jitter_ms, packet_loss))
-    # Keep only last 200 records to prevent table bloating
+    
+    # Prune old samples to keep table fast (last 200 records)
     cursor.execute("""
         DELETE FROM latency_history WHERE id NOT IN (
             SELECT id FROM latency_history ORDER BY id DESC LIMIT 200
@@ -277,7 +445,7 @@ def get_recent_latency(limit=30):
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM latency_history ORDER BY id DESC LIMIT ?", (limit,))
     rows = cursor.fetchall()
-    res = [dict(r) for r in reversed(rows)]
+    res = list(reversed(rows))
     conn.close()
     return res
 
@@ -288,8 +456,7 @@ def get_alerts(unread_only=False, limit=50):
         cursor.execute("SELECT * FROM alerts WHERE is_read = 0 ORDER BY id DESC LIMIT ?", (limit,))
     else:
         cursor.execute("SELECT * FROM alerts ORDER BY id DESC LIMIT ?", (limit,))
-    rows = cursor.fetchall()
-    res = [dict(r) for r in rows]
+    res = cursor.fetchall()
     conn.close()
     return res
 
@@ -300,7 +467,6 @@ def mark_alerts_as_read():
     conn.commit()
     conn.close()
 
-# Agent Configuration & Logs Helpers
 def get_agent_configs():
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -336,7 +502,6 @@ def log_agent_activity(agent_id, level, message):
         INSERT INTO agent_logs (agent_id, level, message)
         VALUES (?, ?, ?)
     """, (agent_id, level.upper(), message))
-    # Keep only last 500 logs to prevent unbounded table growth
     cursor.execute("""
         DELETE FROM agent_logs WHERE id NOT IN (
             SELECT id FROM agent_logs ORDER BY id DESC LIMIT 500
@@ -352,8 +517,6 @@ def get_recent_agent_logs(limit=100, agent_id=None):
         cursor.execute("SELECT * FROM agent_logs WHERE agent_id = ? ORDER BY id DESC LIMIT ?", (agent_id, limit))
     else:
         cursor.execute("SELECT * FROM agent_logs ORDER BY id DESC LIMIT ?", (limit,))
-    rows = cursor.fetchall()
-    res = [dict(r) for r in rows]
+    res = cursor.fetchall()
     conn.close()
     return res
-
