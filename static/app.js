@@ -726,7 +726,7 @@ function renderDevices() {
     emptyState.classList.toggle("hidden", filtered.length > 0);
   }
 
-  // Render Isolated Button-Cards
+  // Render Isolated Button-Cards with Exact Uniform Height
   const grid = document.getElementById("container-grid-view");
   if (grid) {
     grid.innerHTML = filtered.map(d => {
@@ -736,86 +736,48 @@ function renderDevices() {
       const isSelf = (d.ip === state.networkInfo.local_ip);
       const displayName = d.custom_name || d.hostname || (isGateway ? "Router Gateway" : (isSelf ? "Este Computador" : d.vendor || "Dispositivo"));
 
-      const newBadge = d.is_new ? `<span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 text-[10px] font-bold border border-amber-500/30 animate-pulse">NOVO</span>` : '';
-      const trustedBadge = d.is_trusted ? `<i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400" title="Dispositivo Confiável"></i>` : '';
-
-      const openPorts = Array.isArray(d.open_ports) ? d.open_ports : [];
+      const newBadge = d.is_new ? `<span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/40 animate-pulse">NOVO</span>` : '';
+      const trustedBadge = d.is_trusted ? `<i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-300" title="Dispositivo Confiável"></i>` : '';
 
       return `
-        <div class="device-card ${cat.colorClass} group transition-all duration-200 cursor-pointer" onclick="openEditModal(${d.id})">
-          <div class="p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="device-card ${cat.colorClass} group px-4 sm:px-5 cursor-pointer" onclick="openDeviceModal(${d.id})" title="Clique para ver todos os detalhes">
+          <div class="w-full flex items-center justify-between gap-3">
             
-            <!-- Left: Icon + Identity -->
+            <!-- Left: Avatar + Identity -->
             <div class="flex items-center gap-3.5 min-w-0 flex-1">
-              <div class="category-avatar !w-11 !h-11 flex-shrink-0" title="Marca: ${brand.name}">
-                <div class="w-9 h-9 flex items-center justify-center">
+              <div class="category-avatar !w-10 !h-10 sm:!w-11 sm:!h-11 flex-shrink-0" title="Marca: ${brand.name}">
+                <div class="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center">
                   ${brand.svg}
                 </div>
               </div>
 
               <div class="min-w-0 flex-1">
-                <div class="flex items-center gap-2 flex-wrap">
+                <div class="flex items-center gap-2">
                   <span class="font-bold text-white text-sm sm:text-base tracking-tight truncate">${escapeHtml(displayName)}</span>
-                  ${getCategoryBadge(d.device_type)}
                   ${newBadge}
                   ${trustedBadge}
                 </div>
-
-                <div class="flex items-center gap-2 text-xs text-slate-300 font-mono mt-1 flex-wrap">
-                  <button onclick="event.stopPropagation(); copyToClipboard('${d.ip}', 'IP')" class="copyable-badge text-cyan-300 font-bold hover:text-cyan-200" title="Copiar IP">
-                    <span>${maskIp(d.ip)}</span>
-                    <i data-lucide="copy" class="w-3 h-3 text-cyan-400"></i>
-                  </button>
-                  <span class="text-slate-600">•</span>
-                  <button onclick="event.stopPropagation(); copyToClipboard('${d.mac.toUpperCase()}', 'MAC')" class="copyable-badge text-slate-300 hover:text-white" title="Copiar MAC">
-                    <span>${maskMac(d.mac.toUpperCase())}</span>
-                  </button>
-                  ${d.vendor ? `
-                    <span class="text-slate-600 hidden md:inline">•</span>
-                    <span class="text-slate-400 font-sans truncate max-w-[180px] hidden md:inline">${escapeHtml(d.vendor)}</span>
-                  ` : ''}
-                  ${d.hostname ? `
-                    <span class="text-slate-600 hidden lg:inline">•</span>
-                    <span class="text-slate-400 font-sans truncate max-w-[160px] hidden lg:inline text-[11px]">${escapeHtml(d.hostname)}</span>
-                  ` : ''}
+                <div class="flex items-center gap-2 text-xs text-white/80 font-mono mt-0.5 truncate">
+                  <span class="font-bold text-white">${maskIp(d.ip)}</span>
+                  <span class="text-white/40">•</span>
+                  <span class="text-white/70">${maskMac(d.mac.toUpperCase())}</span>
+                  ${d.vendor ? `<span class="text-white/40 hidden md:inline">•</span><span class="text-white/70 font-sans truncate max-w-[160px] hidden md:inline">${escapeHtml(d.vendor)}</span>` : ''}
                 </div>
               </div>
             </div>
 
-            <!-- Right: Action Buttons -->
-            <div class="flex items-center justify-between sm:justify-end gap-2 flex-shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/10" onclick="event.stopPropagation()">
-              <div class="flex items-center gap-1.5">
-                <button onclick="pingDevice(${d.id}, '${d.ip}', this)" title="Testar Ping" class="device-card-btn flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold">
-                  <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-300"></i>
-                  <span>Ping</span>
-                </button>
-                <button onclick="scanDevicePorts(${d.id}, '${d.ip}')" title="Scan de Portas" class="device-card-btn flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold">
-                  <i data-lucide="shield" class="w-3.5 h-3.5 text-blue-300"></i>
-                  <span>Portas</span>
-                </button>
-                ${d.is_new ? `
-                  <button onclick="trustDevice(${d.id})" title="Reconhecer Dispositivo" class="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold text-xs border border-amber-500/40 transition shadow-sm">
-                    Reconhecer
-                  </button>
-                ` : ''}
-                <button onclick="openEditModal(${d.id})" title="Editar Detalhes" class="device-card-btn !p-2">
-                  <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
-                </button>
+            <!-- Right: Category Badge & Details Indicator -->
+            <div class="flex items-center gap-2.5 flex-shrink-0">
+              <div class="hidden sm:block">
+                ${getCategoryBadge(d.device_type)}
+              </div>
+              <div class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-black/30 text-white/90 text-xs font-medium border border-white/15 group-hover:bg-black/50 group-hover:text-white transition">
+                <span class="hidden md:inline text-[11px]">Ver Detalhes</span>
+                <i data-lucide="chevron-right" class="w-4 h-4 text-white/70 group-hover:translate-x-0.5 transition"></i>
               </div>
             </div>
 
           </div>
-
-          <!-- Open Ports row if any -->
-          ${openPorts.length > 0 ? `
-            <div class="px-4 pb-3 pt-0 flex items-center gap-1.5 flex-wrap text-xs border-t border-white/5 pt-2">
-              <span class="text-[10px] text-white/60 uppercase font-semibold mr-1">Portas Abertas:</span>
-              ${openPorts.slice(0, 6).map(p => `
-                <span class="device-port-tag px-2 py-0.5 font-mono text-[11px]">${p.port} ${escapeHtml(p.service || '')}</span>
-              `).join('')}
-              ${openPorts.length > 6 ? `<span class="text-[10px] text-white/70">+${openPorts.length - 6}</span>` : ''}
-            </div>
-          ` : ''}
         </div>
       `;
     }).join("");
@@ -903,16 +865,170 @@ function closePortsModal() {
   document.getElementById("modal-ports").classList.add("hidden");
 }
 
-// Edit Device Modal
-function openEditModal(deviceId) {
+// Complete Device Details Modal
+let currentModalDeviceId = null;
+
+function openDeviceModal(deviceId) {
   const dev = state.devices.find(d => d.id === deviceId);
   if (!dev) return;
 
-  document.getElementById("edit-device-id").value = dev.id;
-  document.getElementById("edit-custom-name").value = dev.custom_name || "";
-  document.getElementById("edit-device-type").value = dev.device_type || "unknown";
-  document.getElementById("edit-device-notes").value = dev.notes || "";
-  document.getElementById("modal-edit-device").classList.remove("hidden");
+  currentModalDeviceId = deviceId;
+  const brand = getDeviceBrand(dev);
+  const cat = CATEGORIES[dev.device_type] || CATEGORIES.unknown;
+  const isGateway = (dev.ip === state.networkInfo.gateway_ip);
+  const isSelf = (dev.ip === state.networkInfo.local_ip);
+  const displayName = dev.custom_name || dev.hostname || (isGateway ? "Router Gateway" : (isSelf ? "Este Computador" : dev.vendor || "Dispositivo"));
+
+  // Header & Avatar
+  const avatarEl = document.getElementById("m-dev-avatar");
+  if (avatarEl) avatarEl.innerHTML = brand.svg;
+
+  const headerEl = document.getElementById("m-dev-header");
+  if (headerEl) {
+    headerEl.style.background = `linear-gradient(135deg, rgba(var(--cat-rgb, 148, 163, 184), 0.35) 0%, rgba(15, 23, 42, 0.95) 100%)`;
+  }
+
+  document.getElementById("m-dev-title").textContent = displayName;
+  document.getElementById("m-dev-badge-cat").innerHTML = getCategoryBadge(dev.device_type);
+  document.getElementById("m-dev-badge-new").innerHTML = dev.is_new 
+    ? `<span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/40 animate-pulse">NOVO</span>` : '';
+  document.getElementById("m-dev-badge-trusted").innerHTML = dev.is_trusted 
+    ? `<span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-500/40 flex items-center gap-1"><i data-lucide="shield-check" class="w-3 h-3"></i> Confiável</span>` : '';
+
+  // Network Identity
+  document.getElementById("m-dev-ip").textContent = dev.ip;
+  document.getElementById("m-dev-copy-ip-btn").onclick = () => copyToClipboard(dev.ip, "IP");
+  document.getElementById("m-dev-mac").textContent = dev.mac.toUpperCase();
+  document.getElementById("m-dev-copy-mac-btn").onclick = () => copyToClipboard(dev.mac.toUpperCase(), "MAC");
+  document.getElementById("m-dev-vendor").textContent = dev.vendor || "Desconhecido";
+  document.getElementById("m-dev-hostname").textContent = dev.hostname || "Sem hostname DNS detetado";
+
+  // Trust button text
+  const trustBtnText = document.getElementById("m-dev-trust-btn-text");
+  if (trustBtnText) {
+    trustBtnText.textContent = dev.is_trusted ? "Remover Confiança" : "Reconhecer / Confiar";
+  }
+
+  // Ping result reset
+  const pingResult = document.getElementById("m-dev-ping-result");
+  if (pingResult) pingResult.classList.add("hidden");
+
+  // Open ports list
+  const portsList = document.getElementById("m-dev-ports-list");
+  const openPorts = Array.isArray(dev.open_ports) ? dev.open_ports : [];
+  if (portsList) {
+    if (openPorts.length > 0) {
+      portsList.innerHTML = openPorts.map(p => `
+        <span class="device-port-tag px-2.5 py-1 text-xs font-mono rounded-lg border border-cyan-500/40 bg-cyan-950/70 text-cyan-300 flex items-center gap-1.5">
+          <span class="font-bold">${p.port}</span>
+          <span class="text-slate-400 font-sans">${escapeHtml(p.service || '')}</span>
+        </span>
+      `).join("");
+    } else {
+      portsList.innerHTML = `<span class="text-slate-500 italic text-xs">Nenhuma porta aberta detetada. Clique em "Verificar Portas" para auditar.</span>`;
+    }
+  }
+
+  // Edit fields
+  document.getElementById("m-dev-id").value = dev.id;
+  document.getElementById("m-dev-input-name").value = dev.custom_name || "";
+  document.getElementById("m-dev-input-type").value = dev.device_type || "unknown";
+  document.getElementById("m-dev-input-notes").value = dev.notes || "";
+
+  // Show modal
+  document.getElementById("modal-device-details").classList.remove("hidden");
+  if (window.lucide) lucide.createIcons();
+}
+
+function closeDeviceModal() {
+  const modal = document.getElementById("modal-device-details");
+  if (modal) modal.classList.add("hidden");
+}
+
+async function pingModalDevice() {
+  if (!currentModalDeviceId) return;
+  const dev = state.devices.find(d => d.id === currentModalDeviceId);
+  if (!dev) return;
+
+  const btnText = document.getElementById("m-dev-ping-btn-text");
+  const origText = btnText.textContent;
+  btnText.innerHTML = `<i data-lucide="loader" class="w-3.5 h-3.5 animate-spin"></i> A testar...`;
+  if (window.lucide) lucide.createIcons();
+
+  try {
+    const res = await fetch(`/api/devices/${dev.id}/ping`);
+    const data = await res.json();
+    const resultBox = document.getElementById("m-dev-ping-result");
+    const valBox = document.getElementById("m-dev-ping-val");
+    if (resultBox && valBox) {
+      resultBox.classList.remove("hidden");
+      if (data.ping && data.ping.alive) {
+        valBox.textContent = `${data.ping.avg_ms} ms (Dispositivo Online)`;
+        valBox.className = "text-emerald-400 font-bold";
+      } else {
+        valBox.textContent = `Sem resposta (Timeout / ICMP Bloqueado)`;
+        valBox.className = "text-rose-400 font-bold";
+      }
+    }
+  } catch (e) {
+    console.error(e);
+  } finally {
+    btnText.textContent = origText;
+  }
+}
+
+async function scanModalDevicePorts() {
+  if (!currentModalDeviceId) return;
+  const dev = state.devices.find(d => d.id === currentModalDeviceId);
+  if (!dev) return;
+
+  const btnText = document.getElementById("m-dev-scan-btn-text");
+  const origText = btnText.textContent;
+  btnText.innerHTML = `<i data-lucide="loader" class="w-3.5 h-3.5 animate-spin"></i> A auditar...`;
+  if (window.lucide) lucide.createIcons();
+
+  try {
+    const res = await fetch(`/api/devices/${dev.id}/scan-ports`, { method: "POST" });
+    const data = await res.json();
+    dev.open_ports = data.open_ports || [];
+    openDeviceModal(currentModalDeviceId);
+    showToast(`Auditadas ${dev.open_ports.length} portas abertas`, "success");
+  } catch (e) {
+    showToast("Erro ao verificar portas", "error");
+  } finally {
+    btnText.textContent = origText;
+  }
+}
+
+async function toggleModalDeviceTrust() {
+  if (!currentModalDeviceId) return;
+  await trustDevice(currentModalDeviceId);
+  openDeviceModal(currentModalDeviceId);
+}
+
+async function saveDeviceModalDetails() {
+  const id = document.getElementById("m-dev-id").value;
+  const custom_name = document.getElementById("m-dev-input-name").value.trim();
+  const device_type = document.getElementById("m-dev-input-type").value;
+  const notes = document.getElementById("m-dev-input-notes").value.trim();
+
+  try {
+    await fetch(`/api/devices/${id}/edit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ custom_name, device_type, notes })
+    });
+    closeDeviceModal();
+    showToast("Detalhes do dispositivo guardados com sucesso", "success");
+    fetchDevices();
+  } catch (err) {
+    showToast("Erro ao gravar alterações", "error");
+  }
+}
+
+// Edit Device Modal (Legacy alias)
+function openEditModal(deviceId) {
+  openDeviceModal(deviceId);
 }
 
 function closeEditModal() {

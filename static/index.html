@@ -48,7 +48,7 @@
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <link rel="stylesheet" href="/styles.css?v=5.0">
+  <link rel="stylesheet" href="/styles.css?v=6.0">
 </head>
 <body class="bg-darkbg text-slate-100 min-h-screen font-sans antialiased selection:bg-cyan-500 selection:text-black">
 
@@ -549,6 +549,155 @@
   </main>
 
   <!-- ========================================================================= -->
+  <!-- MODAL: COMPLETE DEVICE DETAILS & ACTIONS                                  -->
+  <!-- ========================================================================= -->
+  <div id="modal-device-details" class="fixed inset-0 z-50 hidden flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md">
+    <div class="bg-darkcard border border-darkborder w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in duration-200">
+      
+      <!-- Modal Header with Dynamic Theme -->
+      <div id="m-dev-header" class="p-4 sm:p-5 border-b border-white/10 flex items-center justify-between transition-colors bg-slate-900/80">
+        <div class="flex items-center gap-3.5 min-w-0">
+          <div id="m-dev-avatar" class="w-12 h-12 rounded-2xl bg-black/40 flex items-center justify-center p-2 border border-white/10 flex-shrink-0 shadow-md">
+            <!-- Brand SVG injected via JS -->
+          </div>
+          <div class="min-w-0">
+            <h3 id="m-dev-title" class="font-bold text-base sm:text-lg text-white truncate tracking-tight">Nome do Dispositivo</h3>
+            <div class="flex items-center gap-1.5 mt-1 flex-wrap">
+              <span id="m-dev-badge-cat"></span>
+              <span id="m-dev-badge-new"></span>
+              <span id="m-dev-badge-trusted"></span>
+            </div>
+          </div>
+        </div>
+        <button onclick="closeDeviceModal()" class="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition flex-shrink-0">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body (Scrollable) -->
+      <div class="p-4 sm:p-5 space-y-4 overflow-y-auto text-xs">
+        
+        <!-- Network Identity Grid -->
+        <div class="grid grid-cols-2 gap-2.5">
+          <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1">
+            <span class="text-slate-400 flex items-center gap-1.5"><i data-lucide="hash" class="w-3.5 h-3.5 text-cyan-400"></i> Endereço IP</span>
+            <div class="flex items-center justify-between">
+              <span id="m-dev-ip" class="font-mono font-bold text-cyan-300 text-sm">--</span>
+              <button id="m-dev-copy-ip-btn" class="p-1 text-slate-400 hover:text-cyan-300 transition" title="Copiar IP">
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1">
+            <span class="text-slate-400 flex items-center gap-1.5"><i data-lucide="cpu" class="w-3.5 h-3.5 text-purple-400"></i> Endereço MAC</span>
+            <div class="flex items-center justify-between">
+              <span id="m-dev-mac" class="font-mono font-semibold text-slate-200 text-xs">--</span>
+              <button id="m-dev-copy-mac-btn" class="p-1 text-slate-400 hover:text-purple-300 transition" title="Copiar MAC">
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1">
+            <span class="text-slate-400 flex items-center gap-1.5"><i data-lucide="factory" class="w-3.5 h-3.5 text-amber-400"></i> Fabricante OUI</span>
+            <span id="m-dev-vendor" class="font-medium text-white block truncate">--</span>
+          </div>
+
+          <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1">
+            <span class="text-slate-400 flex items-center gap-1.5"><i data-lucide="globe" class="w-3.5 h-3.5 text-emerald-400"></i> Hostname DNS</span>
+            <span id="m-dev-hostname" class="font-medium text-white block truncate">--</span>
+          </div>
+        </div>
+
+        <!-- Real-time Diagnostics Bar -->
+        <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2.5">
+          <span class="text-slate-300 font-semibold flex items-center gap-1.5">
+            <i data-lucide="activity" class="w-4 h-4 text-cyan-400"></i> Diagnóstico em Tempo Real
+          </span>
+          
+          <div class="flex items-center gap-2 flex-wrap">
+            <button id="m-dev-btn-ping" onclick="pingModalDevice()" class="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 font-semibold border border-cyan-500/40 transition active:scale-95">
+              <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-300"></i>
+              <span id="m-dev-ping-btn-text">Testar Ping</span>
+            </button>
+            <button id="m-dev-btn-scan" onclick="scanModalDevicePorts()" class="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 font-semibold border border-blue-500/40 transition active:scale-95">
+              <i data-lucide="shield" class="w-3.5 h-3.5 text-blue-300"></i>
+              <span id="m-dev-scan-btn-text">Verificar Portas</span>
+            </button>
+            <button id="m-dev-btn-trust" onclick="toggleModalDeviceTrust()" class="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-semibold border border-emerald-500/40 transition active:scale-95">
+              <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+              <span id="m-dev-trust-btn-text">Reconhecer</span>
+            </button>
+          </div>
+
+          <div id="m-dev-ping-result" class="hidden p-2.5 rounded-lg bg-slate-950 font-mono text-xs flex items-center justify-between border border-slate-800">
+            <span class="text-slate-400">Latência do Ping:</span>
+            <span id="m-dev-ping-val" class="text-emerald-400 font-bold">--</span>
+          </div>
+        </div>
+
+        <!-- Open Ports Section -->
+        <div id="m-dev-ports-container" class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
+          <span class="text-slate-300 font-semibold flex items-center gap-1.5">
+            <i data-lucide="door-open" class="w-4 h-4 text-purple-400"></i> Portas Abertas & Serviços
+          </span>
+          <div id="m-dev-ports-list" class="flex flex-wrap gap-1.5 pt-1">
+            <!-- Ports rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- Edit Custom Name & Category Form -->
+        <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-3">
+          <span class="text-slate-300 font-semibold flex items-center gap-1.5">
+            <i data-lucide="edit-3" class="w-4 h-4 text-cyan-400"></i> Personalizar Detalhes
+          </span>
+
+          <input type="hidden" id="m-dev-id">
+
+          <div class="space-y-2.5">
+            <div>
+              <label class="block text-slate-400 text-[11px] mb-1 font-medium">Nome Personalizado / Alias</label>
+              <input type="text" id="m-dev-input-name" placeholder="ex: TV Sala, PC Escritório, Box MEO..." class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-sans">
+            </div>
+
+            <div>
+              <label class="block text-slate-400 text-[11px] mb-1 font-medium">Categoria</label>
+              <select id="m-dev-input-type" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-cyan-500 font-sans cursor-pointer">
+                <option value="router">🌐 Router / Equipamento de Rede</option>
+                <option value="tv_media">📺 Smart TV / Streaming</option>
+                <option value="computer">💻 Computador / Laptop / Servidor</option>
+                <option value="mobile">📱 Smartphone / Tablet</option>
+                <option value="iot">💡 IoT / Smart Home / Domótica</option>
+                <option value="gaming">🎮 Consola de Jogos</option>
+                <option value="printer">🖨️ Impressora de Rede</option>
+                <option value="unknown">❓ Desconhecido / Outro</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-slate-400 text-[11px] mb-1 font-medium">Notas Técnicas</label>
+              <textarea id="m-dev-input-notes" rows="2" placeholder="Observações, IP estático ou localização..." class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-sans"></textarea>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-4 border-t border-slate-800 flex items-center justify-between bg-slate-950/80">
+        <button onclick="closeDeviceModal()" class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 font-semibold transition">
+          Fechar
+        </button>
+        <button onclick="saveDeviceModalDetails()" class="px-5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold shadow-lg shadow-cyan-500/20 transition active:scale-95">
+          Gravar Alterações
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
   <!-- MODAL: EDIT DEVICE DETAILS                                                -->
   <!-- ========================================================================= -->
   <div id="modal-edit-device" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
@@ -708,6 +857,6 @@
   <!-- Toast Notification Container -->
   <div id="toast-container" class="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 left-4 sm:left-auto z-50 flex flex-col gap-2 pointer-events-none"></div>
 
-  <script src="/app.js?v=5.0"></script>
+  <script src="/app.js?v=6.0"></script>
 </body>
 </html>
