@@ -1892,16 +1892,17 @@ async function runDnsBenchmark() {
   try {
     const res = await fetch("/api/dns-benchmark/run", { method: "POST" });
     const data = await res.json();
-    if (data && data.servers) {
+    if (res.ok && data && data.servers) {
       dnsBenchmarkData = data;
       renderDnsBenchmark(data);
       showToast("Benchmark de DNS concluído com sucesso!", "success");
     } else {
-      showToast("Falha ao executar benchmark de DNS", "error");
+      const errMsg = (data && data.error) ? data.error : "Falha ao executar benchmark de DNS";
+      showToast(errMsg, "error");
     }
   } catch (err) {
     console.error(err);
-    showToast("Erro ao comunicar com o servidor de DNS", "error");
+    showToast(`Erro ao comunicar com o servidor: ${err.message || err}`, "error");
   } finally {
     if (rerunBtn) rerunBtn.disabled = false;
     if (rerunText) rerunText.textContent = "Testar Novamente";

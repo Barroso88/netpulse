@@ -82,6 +82,16 @@ def get_local_interface_and_ip() -> tuple:
 
     return iface, local_ip
 
+def get_network_info() -> dict:
+    """Returns network info dictionary with gateway_ip, local_ip, and interface."""
+    gw = get_default_gateway() or "192.168.1.1"
+    iface, local_ip = get_local_interface_and_ip()
+    return {
+        "gateway_ip": gw,
+        "local_ip": local_ip,
+        "interface": iface
+    }
+
 def resolve_hostname(ip: str, timeout: float = 0.5) -> str:
     """Performs reverse DNS lookup with quick timeout."""
     try:

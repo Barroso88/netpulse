@@ -193,8 +193,10 @@ class NetPulseHandler(http.server.SimpleHTTPRequestHandler):
         elif path == "/api/dns-benchmark":
             global LATEST_DNS_BENCHMARK
             if LATEST_DNS_BENCHMARK is None:
-                net_info = network_scanner.get_network_info()
-                gw = net_info.get("gateway_ip") or "192.168.1.1"
+                try:
+                    gw = network_scanner.get_default_gateway() or "192.168.1.1"
+                except Exception:
+                    gw = "192.168.1.1"
                 LATEST_DNS_BENCHMARK = tools_network.benchmark_dns_servers(gw)
             return self.send_json(LATEST_DNS_BENCHMARK)
 
@@ -360,8 +362,10 @@ class NetPulseHandler(http.server.SimpleHTTPRequestHandler):
         elif path == "/api/dns-benchmark/run":
             global LATEST_DNS_BENCHMARK
             try:
-                net_info = network_scanner.get_network_info()
-                gw = net_info.get("gateway_ip") or "192.168.1.1"
+                try:
+                    gw = network_scanner.get_default_gateway() or "192.168.1.1"
+                except Exception:
+                    gw = "192.168.1.1"
                 LATEST_DNS_BENCHMARK = tools_network.benchmark_dns_servers(gw)
                 return self.send_json(LATEST_DNS_BENCHMARK)
             except Exception as e:

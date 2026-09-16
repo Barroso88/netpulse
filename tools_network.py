@@ -55,12 +55,12 @@ def build_dns_query(domain: str, query_id: int = 0x1a2b) -> bytes:
     footer = struct.pack("!HH", 1, 1)
     return header + qname + footer
 
-def test_single_dns_server(server_meta: dict, domains: list = None, timeout: float = 1.2) -> dict:
+def test_single_dns_server(server_meta: dict, domains: list = None, timeout: float = 0.8) -> dict:
     """
     Resolves domains through a specific DNS server over UDP port 53 and measures response RTT.
     """
     if domains is None:
-        domains = ["google.com", "cloudflare.com", "apple.com", "microsoft.com"]
+        domains = ["google.com", "cloudflare.com", "apple.com"]
 
     ip = server_meta["ip"]
     latencies = []
