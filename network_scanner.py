@@ -349,23 +349,17 @@ def scan_network_full(quick: bool = False) -> dict:
         # Mark offline devices
         database.mark_offline_stale_devices(active_macs)
 
-        # Sort results with gateway first, then by IP
-        def sort_key(d):
-            if d["ip"] == gateway_ip:
-                return 0
-            try:
-                return int(d["ip"].split(".")[-1])
-            except Exception:
-                return 999
-
-        result_devices.sort(key=sort_key)
+        # Retrieve the complete persistent inventory (online + offline) from the database
+        all_devices = database.get_all_devices()
+        active_count = len([d for d in all_devices if (d.get("status") or "online") == "online"])
 
         return {
             "gateway_ip": gateway_ip,
             "local_ip": local_ip,
             "interface": iface,
             "subnet": f"{subnet_prefix}0/24",
-            "total_active": len(result_devices),
+            "total_active": active_count,
+            "total_devices": len(all_devices),
             "new_devices_count": new_devices_found,
-            "devices": result_devices
+            "devices": all_devices
         }

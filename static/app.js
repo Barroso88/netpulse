@@ -510,10 +510,12 @@ async function fetchDevices(silent = false) {
       updateNetworkHeader();
     }
 
+    // Always keep KPI counts and category pill badges in 100% sync
+    renderKPIs();
+    renderCategoryPills();
+
     if (hasChanged || !silent) {
       state._devicesSignature = stateSig;
-      renderKPIs();
-      renderCategoryPills();
       renderDevices();
       if (state.activeTab === "topology") {
         renderTopologyMap();
@@ -556,22 +558,13 @@ async function triggerScan(quick = false) {
   text.textContent = "A varrer...";
 
   try {
-    const res = await fetch("/api/scan", {
+    await fetch("/api/scan", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ quick })
     });
-    const data = await res.json();
-    state.devices = data.devices || [];
-    if (data.gateway_ip) {
-      state.networkInfo.gateway_ip = data.gateway_ip;
-      state.networkInfo.local_ip = data.local_ip;
-      state.networkInfo.interface = data.interface;
-      updateNetworkHeader();
-    }
-    renderKPIs();
-    renderCategoryPills();
-    renderDevices();
+    // Immediately fetch full, authoritative inventory from database
+    await fetchDevices(false);
     fetchAlerts();
   } catch (err) {
     console.error("Falha no varrimento de rede:", err);
