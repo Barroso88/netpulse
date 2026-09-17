@@ -48,7 +48,7 @@
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <link rel="stylesheet" href="/styles.css?v=9.2">
+  <link rel="stylesheet" href="/styles.css?v=9.3">
 </head>
 <body class="bg-darkbg text-slate-100 min-h-screen font-sans antialiased selection:bg-cyan-500 selection:text-black">
 
@@ -59,31 +59,31 @@
   <aside id="app-sidebar" class="fixed top-0 bottom-0 left-0 z-50 w-64 xl:w-72 bg-slate-950/95 lg:bg-slate-950/85 backdrop-blur-2xl border-r border-slate-800/80 flex flex-col justify-between transition-transform duration-300 -translate-x-full lg:translate-x-0 shadow-2xl overflow-y-auto select-none">
     
     <!-- Sidebar Top: Brand & Network Header -->
-    <div class="p-5 border-b border-white/5 space-y-4">
+    <div class="p-4 xl:p-5 border-b border-white/5 space-y-4">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
-          <div class="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-600 shadow-lg shadow-cyan-500/25 text-white font-black flex-shrink-0">
-            <i data-lucide="activity" class="w-5 h-5"></i>
-            <span class="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+          <div class="relative flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-600 shadow-lg shadow-cyan-500/25 text-white font-black flex-shrink-0">
+            <i data-lucide="activity" class="w-4 h-4"></i>
+            <span class="absolute -top-0.5 -right-0.5 flex h-2 w-2">
               <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
           </div>
           <div>
             <div class="flex items-center gap-1.5">
-              <span class="font-extrabold text-lg tracking-tight bg-gradient-to-r from-white via-slate-100 to-cyan-300 bg-clip-text text-transparent">NetPulse</span>
-              <span class="text-[9px] uppercase font-bold tracking-widest px-1.5 py-0.5 rounded-full bg-cyan-950/80 text-cyan-400 border border-cyan-800/60">Pro</span>
+              <span class="font-extrabold text-base tracking-tight bg-gradient-to-r from-white via-slate-100 to-cyan-300 bg-clip-text text-transparent">NetPulse</span>
+              <span class="text-[9px] uppercase font-bold tracking-widest px-1.5 py-0.2 rounded-full bg-cyan-950/80 text-cyan-400 border border-cyan-800/60">Pro</span>
             </div>
-            <p class="text-[11px] text-slate-400 font-mono flex items-center gap-1.5 mt-0.5">
+            <p class="text-[10px] text-slate-400 font-mono flex items-center gap-1 mt-0.5">
               <span id="header-subnet">192.168.1.0/24</span>
               <span class="inline-block w-1 h-1 rounded-full bg-slate-600"></span>
               <span id="header-iface" class="text-cyan-400">en0</span>
             </p>
           </div>
         </div>
-        <!-- Close button (Mobile only) -->
-        <button onclick="closeSidebar()" class="lg:hidden p-1.5 rounded-xl bg-slate-900 text-slate-400 hover:text-white border border-slate-800 transition" title="Fechar Menu">
-          <i data-lucide="x" class="w-5 h-5"></i>
+        <!-- Collapse / Close Hamburger Button -->
+        <button id="btn-sidebar-collapse" onclick="toggleSidebar()" class="p-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-cyan-400 border border-slate-800 transition active:scale-95 flex-shrink-0" title="Colapsar Barra Lateral">
+          <i data-lucide="menu" class="w-4 h-4"></i>
         </button>
       </div>
 
@@ -207,12 +207,12 @@
   </aside>
 
   <!-- TOP WORKSPACE BAR -->
-  <header class="sticky top-0 z-30 lg:pl-64 xl:pl-72 bg-darkbg/90 backdrop-blur-md border-b border-darkborder px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3.5">
+  <header id="top-header" class="sticky top-0 z-30 lg:pl-64 xl:pl-72 bg-darkbg/90 backdrop-blur-md border-b border-darkborder px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3.5">
     <div class="flex items-center justify-between gap-4">
       
-      <!-- Left: Mobile Hamburger + Workspace Title / Breadcrumb -->
+      <!-- Left: Hamburger Toggle + Workspace Title / Breadcrumb -->
       <div class="flex items-center gap-3">
-        <button id="btn-sidebar-toggle" onclick="toggleSidebar()" class="lg:hidden p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 transition active:scale-95" title="Abrir Menu">
+        <button id="btn-sidebar-toggle" onclick="toggleSidebar()" class="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-cyan-400 border border-slate-800 transition active:scale-95 shadow-sm" title="Alternar Barra Lateral">
           <i data-lucide="menu" class="w-5 h-5"></i>
         </button>
         <div class="flex items-center gap-2">
@@ -243,97 +243,97 @@
   </header>
 
   <!-- MAIN WRAPPER (WORK AREA) -->
-  <main class="lg:pl-64 xl:pl-72 w-full px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6 pb-24 sm:pb-8">
+  <main id="main-content" class="lg:pl-64 xl:pl-72 w-full px-3 sm:px-6 lg:px-8 py-3.5 sm:py-5 space-y-3.5 sm:space-y-5 pb-24 sm:pb-8">
 
-    <!-- KPI HERO METRICS -->
-    <section class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+    <!-- KPI HERO METRICS (Compact -40% Reduced Footprint) -->
+    <section class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
       
       <!-- KPI 1: Active Devices (Cyan Theme) -->
-      <div class="kpi-card kpi-card-devices p-3.5 sm:p-5 group">
-        <div class="flex items-center justify-between mb-2 sm:mb-3">
-          <span class="text-[11px] sm:text-xs uppercase font-bold tracking-wider text-cyan-200/90">Dispositivos</span>
-          <div class="p-1.5 sm:p-2 rounded-xl bg-cyan-400/20 text-cyan-300 group-hover:scale-110 transition">
-            <i data-lucide="network" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+      <div class="kpi-card kpi-card-devices p-2.5 sm:p-3 group">
+        <div class="flex items-center justify-between mb-1 sm:mb-1.5">
+          <span class="text-[10px] sm:text-[11px] uppercase font-bold tracking-wider text-cyan-200/90">Dispositivos</span>
+          <div class="p-1 sm:p-1.5 rounded-lg bg-cyan-400/20 text-cyan-300 group-hover:scale-105 transition">
+            <i data-lucide="network" class="w-3.5 h-3.5"></i>
           </div>
         </div>
-        <div class="flex items-baseline gap-2">
-          <span id="kpi-total-devices" class="text-2xl sm:text-3xl font-black tracking-tight text-white font-mono">--</span>
-          <span class="text-[11px] sm:text-xs text-emerald-300 font-bold flex items-center gap-1">
-            <span class="inline-block w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <div class="flex items-baseline gap-1.5">
+          <span id="kpi-total-devices" class="text-xl sm:text-2xl font-black tracking-tight text-white font-mono leading-none">--</span>
+          <span class="text-[10px] sm:text-[11px] text-emerald-300 font-bold flex items-center gap-1 leading-none">
+            <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
             Online
           </span>
-          <span id="kpi-devices-offline-badge" class="hidden text-[10px] sm:text-[11px] text-slate-400 font-medium px-1.5 py-0.5 rounded bg-slate-800/80 border border-slate-700/50">
+          <span id="kpi-devices-offline-badge" class="hidden text-[9px] sm:text-[10px] text-slate-400 font-medium px-1 py-0.2 rounded bg-slate-800/80 border border-slate-700/50 leading-none">
             <span id="kpi-offline-devices" class="text-slate-300 font-mono font-bold">0</span> off
           </span>
         </div>
-        <div class="mt-2.5 sm:mt-3 pt-2.5 sm:pt-3 border-t border-white/10 flex items-center justify-between text-[11px] sm:text-xs text-cyan-200/80">
+        <div class="mt-1.5 sm:mt-2 pt-1.5 sm:pt-2 border-t border-white/10 flex items-center justify-between text-[10px] sm:text-[11px] text-cyan-200/80 leading-none">
           <span>Total: <b id="kpi-devices-total" class="text-white font-mono font-bold">--</b></span>
-          <span>Novos: <span id="kpi-new-devices" class="px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 font-bold font-mono">0</span></span>
+          <span>Novos: <span id="kpi-new-devices" class="px-1.5 py-0.2 rounded-full bg-amber-400/20 text-amber-300 font-bold font-mono text-[9px] sm:text-[10px]">0</span></span>
         </div>
       </div>
 
       <!-- KPI 2: Router Latency (Cobalt Blue Theme) -->
-      <div class="kpi-card kpi-card-router p-3.5 sm:p-5 group">
-        <div class="flex items-center justify-between mb-2 sm:mb-3">
-          <span class="text-[11px] sm:text-xs uppercase font-bold tracking-wider text-blue-200/90">Latência Router</span>
-          <div class="p-1.5 sm:p-2 rounded-xl bg-blue-400/20 text-blue-300 group-hover:scale-110 transition">
-            <i data-lucide="gauge" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+      <div class="kpi-card kpi-card-router p-2.5 sm:p-3 group">
+        <div class="flex items-center justify-between mb-1 sm:mb-1.5">
+          <span class="text-[10px] sm:text-[11px] uppercase font-bold tracking-wider text-blue-200/90">Latência Router</span>
+          <div class="p-1 sm:p-1.5 rounded-lg bg-blue-400/20 text-blue-300 group-hover:scale-105 transition">
+            <i data-lucide="gauge" class="w-3.5 h-3.5"></i>
           </div>
         </div>
-        <div class="flex items-baseline gap-1.5">
-          <span id="kpi-router-latency" class="text-2xl sm:text-3xl font-black tracking-tight text-white font-mono">--</span>
-          <span class="text-xs sm:text-sm font-bold text-blue-200/80">ms</span>
+        <div class="flex items-baseline gap-1">
+          <span id="kpi-router-latency" class="text-xl sm:text-2xl font-black tracking-tight text-white font-mono leading-none">--</span>
+          <span class="text-[10px] sm:text-xs font-bold text-blue-200/80 leading-none">ms</span>
         </div>
-        <div class="mt-2.5 sm:mt-3 pt-2.5 sm:pt-3 border-t border-white/10 flex items-center justify-between text-[11px] sm:text-xs text-blue-200/80">
+        <div class="mt-1.5 sm:mt-2 pt-1.5 sm:pt-2 border-t border-white/10 flex items-center justify-between text-[10px] sm:text-[11px] text-blue-200/80 leading-none">
           <span>Jitter: <strong id="kpi-router-jitter" class="text-white font-mono">-- ms</strong></span>
-          <span id="kpi-router-health" class="px-1.5 sm:px-2 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 font-bold text-[10px] sm:text-xs">Bom</span>
+          <span id="kpi-router-health" class="px-1.5 py-0.2 rounded-full bg-emerald-400/20 text-emerald-300 font-bold text-[9px] sm:text-[10px]">Bom</span>
         </div>
       </div>
 
       <!-- KPI 3: Internet Ping & WAN Health (Emerald Green Theme) -->
-      <div class="kpi-card kpi-card-wan p-3.5 sm:p-5 group">
-        <div class="flex items-center justify-between mb-2 sm:mb-3">
-          <span class="text-[11px] sm:text-xs uppercase font-bold tracking-wider text-emerald-200/90">Internet (WAN)</span>
-          <div class="p-1.5 sm:p-2 rounded-xl bg-emerald-400/20 text-emerald-300 group-hover:scale-110 transition">
-            <i data-lucide="globe" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+      <div class="kpi-card kpi-card-wan p-2.5 sm:p-3 group">
+        <div class="flex items-center justify-between mb-1 sm:mb-1.5">
+          <span class="text-[10px] sm:text-[11px] uppercase font-bold tracking-wider text-emerald-200/90">Internet (WAN)</span>
+          <div class="p-1 sm:p-1.5 rounded-lg bg-emerald-400/20 text-emerald-300 group-hover:scale-105 transition">
+            <i data-lucide="globe" class="w-3.5 h-3.5"></i>
           </div>
         </div>
-        <div class="flex items-baseline gap-1.5">
-          <span id="kpi-wan-latency" class="text-2xl sm:text-3xl font-black tracking-tight text-white font-mono">--</span>
-          <span class="text-xs sm:text-sm font-bold text-emerald-200/80">ms</span>
+        <div class="flex items-baseline gap-1">
+          <span id="kpi-wan-latency" class="text-xl sm:text-2xl font-black tracking-tight text-white font-mono leading-none">--</span>
+          <span class="text-[10px] sm:text-xs font-bold text-emerald-200/80 leading-none">ms</span>
         </div>
-        <div class="mt-2.5 sm:mt-3 pt-2.5 sm:pt-3 border-t border-white/10 flex items-center justify-between text-[11px] sm:text-xs text-emerald-200/80">
+        <div class="mt-1.5 sm:mt-2 pt-1.5 sm:pt-2 border-t border-white/10 flex items-center justify-between text-[10px] sm:text-[11px] text-emerald-200/80 leading-none">
           <span class="truncate">Destino: <strong class="text-white font-mono">1.1.1.1</strong></span>
-          <span class="text-emerald-300 flex items-center gap-1 font-bold text-[10px] sm:text-xs">
-            <i data-lucide="check-circle-2" class="w-3 h-3"></i> OK
+          <span class="text-emerald-300 flex items-center gap-1 font-bold text-[9px] sm:text-[10px]">
+            <i data-lucide="check-circle-2" class="w-2.5 h-2.5"></i> OK
           </span>
         </div>
       </div>
 
       <!-- KPI 4: Speedtest Quick Summary (Royal Purple Theme) -->
-      <div class="kpi-card kpi-card-speed p-3.5 sm:p-5 group">
-        <div class="flex items-center justify-between mb-2 sm:mb-3">
-          <span class="text-[11px] sm:text-xs uppercase font-bold tracking-wider text-purple-200/90">Velocidade</span>
-          <div class="p-1.5 sm:p-2 rounded-xl bg-purple-400/20 text-purple-300 group-hover:scale-110 transition">
-            <i data-lucide="zap" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+      <div class="kpi-card kpi-card-speed p-2.5 sm:p-3 group">
+        <div class="flex items-center justify-between mb-1 sm:mb-1.5">
+          <span class="text-[10px] sm:text-[11px] uppercase font-bold tracking-wider text-purple-200/90">Velocidade</span>
+          <div class="p-1 sm:p-1.5 rounded-lg bg-purple-400/20 text-purple-300 group-hover:scale-105 transition">
+            <i data-lucide="zap" class="w-3.5 h-3.5"></i>
           </div>
         </div>
-        <div class="flex items-baseline gap-2 sm:gap-3 flex-wrap">
-          <div class="flex items-baseline gap-0.5 sm:gap-1">
-            <i data-lucide="arrow-down" class="w-3.5 h-3.5 text-cyan-300"></i>
-            <span id="kpi-speed-down" class="text-lg sm:text-2xl font-black text-white font-mono">--</span>
-            <span class="text-[10px] sm:text-xs text-purple-200/80 font-bold">M</span>
+        <div class="flex items-baseline gap-2 flex-wrap">
+          <div class="flex items-baseline gap-0.5">
+            <i data-lucide="arrow-down" class="w-3 h-3 text-cyan-300"></i>
+            <span id="kpi-speed-down" class="text-base sm:text-lg font-black text-white font-mono leading-none">--</span>
+            <span class="text-[9px] sm:text-[10px] text-purple-200/80 font-bold">M</span>
           </div>
-          <div class="flex items-baseline gap-0.5 sm:gap-1">
-            <i data-lucide="arrow-up" class="w-3.5 h-3.5 text-pink-300"></i>
-            <span id="kpi-speed-up" class="text-lg sm:text-2xl font-black text-white font-mono">--</span>
-            <span class="text-[10px] sm:text-xs text-purple-200/80 font-bold">M</span>
+          <div class="flex items-baseline gap-0.5">
+            <i data-lucide="arrow-up" class="w-3 h-3 text-pink-300"></i>
+            <span id="kpi-speed-up" class="text-base sm:text-lg font-black text-white font-mono leading-none">--</span>
+            <span class="text-[9px] sm:text-[10px] text-purple-200/80 font-bold">M</span>
           </div>
         </div>
-        <div class="mt-2.5 sm:mt-3 pt-2.5 sm:pt-3 border-t border-white/10 flex items-center justify-between text-[11px] sm:text-xs">
-          <span id="kpi-speed-date" class="text-purple-200/80 truncate">Sem teste</span>
-          <button onclick="switchTab('speedtest'); triggerSpeedtest();" class="text-purple-200 hover:text-white font-bold hover:underline flex items-center gap-1 transition">
-            Testar <i data-lucide="arrow-right" class="w-3 h-3"></i>
+        <div class="mt-1.5 sm:mt-2 pt-1.5 sm:pt-2 border-t border-white/10 flex items-center justify-between text-[10px] sm:text-[11px] leading-none">
+          <span id="kpi-speed-date" class="text-purple-200/80 truncate text-[9px] sm:text-[10px]">Sem teste</span>
+          <button onclick="switchTab('speedtest'); triggerSpeedtest();" class="text-purple-200 hover:text-white font-bold hover:underline flex items-center gap-1 transition text-[9px] sm:text-[10px]">
+            Testar <i data-lucide="arrow-right" class="w-2.5 h-2.5"></i>
           </button>
         </div>
       </div>
@@ -1145,6 +1145,6 @@
   <!-- Toast Notification Container -->
   <div id="toast-container" class="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 left-4 sm:left-auto z-50 flex flex-col gap-2 pointer-events-none"></div>
 
-  <script src="/app.js?v=9.2"></script>
+  <script src="/app.js?v=9.3"></script>
 </body>
 </html>

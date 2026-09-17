@@ -37,26 +37,26 @@ header {
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* KPI Hero Metric Cards - Distinct Vibrant Executive Themes */
+/* KPI Hero Metric Cards - Distinct Vibrant Executive Themes (Compact -40%) */
 .kpi-card {
   position: relative;
   overflow: hidden;
-  border-radius: 1.25rem !important;
-  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.65);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: 0.875rem !important;
+  box-shadow: 0 4px 14px -3px rgba(0, 0, 0, 0.6);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .kpi-card::before {
   content: '';
   position: absolute;
   top: 0;
-  left: 1.25rem;
-  right: 1.25rem;
-  height: 2.5px;
+  left: 0.85rem;
+  right: 0.85rem;
+  height: 2px;
   opacity: 0.95;
 }
 .kpi-card:hover {
-  transform: translateY(-2px) scale(1.008);
-  filter: brightness(1.08);
+  transform: translateY(-1.5px) scale(1.005);
+  filter: brightness(1.06);
 }
 
 /* KPI 1: Dispositivos - Solid Deep Cyan */
@@ -201,6 +201,45 @@ header {
 .sidebar-tab-btn.active .tab-badge {
   border-color: rgba(34, 211, 238, 0.5) !important;
   color: #ffffff !important;
+}
+
+/* Sidebar Desktop Collapse & Responsive Transitions */
+#app-sidebar {
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+#top-header,
+#main-content {
+  transition: padding-left 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+body.sidebar-collapsed #app-sidebar {
+  transform: translateX(-100%) !important;
+}
+body.sidebar-collapsed #top-header {
+  padding-left: 1rem !important;
+}
+@media (min-width: 640px) {
+  body.sidebar-collapsed #top-header {
+    padding-left: 1.5rem !important;
+  }
+}
+@media (min-width: 1024px) {
+  body.sidebar-collapsed #top-header {
+    padding-left: 2rem !important;
+  }
+}
+body.sidebar-collapsed #main-content {
+  padding-left: 0.75rem !important;
+}
+@media (min-width: 640px) {
+  body.sidebar-collapsed #main-content {
+    padding-left: 1.5rem !important;
+  }
+}
+@media (min-width: 1024px) {
+  body.sidebar-collapsed #main-content {
+    padding-left: 2rem !important;
+  }
 }
 
 /* Category Filter Pills */

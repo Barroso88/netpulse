@@ -372,29 +372,54 @@ document.addEventListener("DOMContentLoaded", async () => {
   }, 4000);
 });
 
-// Sidebar Navigation Controls (Mobile & Desktop)
+// Sidebar Navigation Controls (Mobile & Desktop Collapsible)
 function openSidebar() {
   const sb = document.getElementById("app-sidebar");
   const bd = document.getElementById("sidebar-backdrop");
-  if (sb) sb.classList.remove("-translate-x-full");
-  if (bd) bd.classList.remove("hidden");
+  if (window.innerWidth < 1024) {
+    if (sb) sb.classList.remove("-translate-x-full");
+    if (bd) bd.classList.remove("hidden");
+  } else {
+    document.body.classList.remove("sidebar-collapsed");
+    try { localStorage.setItem("netpulse_sidebar_collapsed", "false"); } catch(e){}
+  }
 }
 
-function closeSidebar() {
+function closeSidebar(collapseDesktop = false) {
   const sb = document.getElementById("app-sidebar");
   const bd = document.getElementById("sidebar-backdrop");
-  if (sb) sb.classList.add("-translate-x-full");
-  if (bd) bd.classList.add("hidden");
+  if (window.innerWidth < 1024) {
+    if (sb) sb.classList.add("-translate-x-full");
+    if (bd) bd.classList.add("hidden");
+  } else if (collapseDesktop) {
+    document.body.classList.add("sidebar-collapsed");
+    try { localStorage.setItem("netpulse_sidebar_collapsed", "true"); } catch(e){}
+  }
 }
 
 function toggleSidebar() {
-  const sb = document.getElementById("app-sidebar");
-  if (sb && sb.classList.contains("-translate-x-full")) {
-    openSidebar();
+  if (window.innerWidth < 1024) {
+    const sb = document.getElementById("app-sidebar");
+    if (sb && sb.classList.contains("-translate-x-full")) {
+      openSidebar();
+    } else {
+      closeSidebar();
+    }
   } else {
-    closeSidebar();
+    if (document.body.classList.contains("sidebar-collapsed")) {
+      openSidebar();
+    } else {
+      closeSidebar(true);
+    }
   }
 }
+
+// Restore saved sidebar collapsed state on desktop
+try {
+  if (localStorage.getItem("netpulse_sidebar_collapsed") === "true" && window.innerWidth >= 1024) {
+    document.body.classList.add("sidebar-collapsed");
+  }
+} catch(e){}
 
 // Switch Main Navigation Tabs
 function switchTab(tabId) {
