@@ -11,6 +11,7 @@ let state = {
   sortColumn: "ip",
   sortDirection: "asc",
   selectedCategory: "all",
+  statusFilter: "all",
   searchQuery: "",
   alerts: [],
   speedtests: [],
@@ -618,6 +619,46 @@ function renderKPIs() {
 
   const tabCount = document.getElementById("tab-count-devices");
   if (tabCount) tabCount.textContent = total;
+
+  updateStatusFilterButtons();
+}
+
+// Status Filter Handler (all / online / offline)
+function setStatusFilter(filter) {
+  state.statusFilter = filter;
+  updateStatusFilterButtons();
+  renderDevices();
+}
+
+function updateStatusFilterButtons() {
+  const allBtn = document.getElementById("status-filter-all");
+  const onBtn = document.getElementById("status-filter-online");
+  const offBtn = document.getElementById("status-filter-offline");
+
+  if (allBtn) {
+    allBtn.classList.toggle("active", state.statusFilter === "all");
+    allBtn.classList.toggle("text-slate-400", state.statusFilter !== "all");
+  }
+  if (onBtn) {
+    onBtn.classList.toggle("active", state.statusFilter === "online");
+    onBtn.classList.toggle("text-slate-400", state.statusFilter !== "online");
+  }
+  if (offBtn) {
+    offBtn.classList.toggle("active", state.statusFilter === "offline");
+    offBtn.classList.toggle("text-slate-400", state.statusFilter !== "offline");
+  }
+
+  const total = state.devices.length;
+  const onlineCount = state.devices.filter(d => (d.status || 'online') === 'online').length;
+  const offlineCount = Math.max(0, total - onlineCount);
+
+  const bAll = document.getElementById("badge-count-all");
+  const bOn = document.getElementById("badge-count-online");
+  const bOff = document.getElementById("badge-count-offline");
+
+  if (bAll) bAll.textContent = total;
+  if (bOn) bOn.textContent = onlineCount;
+  if (bOff) bOff.textContent = offlineCount;
 }
 
 // Render Category Filter Pills
@@ -731,6 +772,13 @@ function updateSortIndicators() {
 // Filter and Sort Devices based on Category, Search & Column Ordering
 function getFilteredDevices() {
   const filtered = state.devices.filter(dev => {
+    // Status filter (all, online, offline)
+    if (state.statusFilter === "online") {
+      if ((dev.status || "online") !== "online") return false;
+    } else if (state.statusFilter === "offline") {
+      if ((dev.status || "online") === "online") return false;
+    }
+
     // Category filter
     if (state.selectedCategory !== "all") {
       if ((dev.device_type || "unknown") !== state.selectedCategory) {
