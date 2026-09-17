@@ -48,7 +48,7 @@
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <link rel="stylesheet" href="/styles.css?v=10.0">
+  <link rel="stylesheet" href="/styles.css?v=10.1">
 </head>
 <body class="bg-darkbg text-slate-100 min-h-screen font-sans antialiased selection:bg-cyan-500 selection:text-black">
 
@@ -392,76 +392,107 @@
     <!-- ========================================================================= -->
     <section id="tab-content-devices" class="space-y-4">
       
-      <!-- Filters and Search Toolbar -->
-      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 sm:gap-3 p-3 sm:p-3.5 rounded-2xl bg-darkcard border border-darkborder">
+      <!-- Unified Inventory Control Deck (Search, Status, Sorting & Category Taxonomy) -->
+      <div class="inventory-control-deck rounded-2xl p-3 sm:p-4 space-y-3.5">
         
-        <!-- Search Input -->
-        <div class="relative flex-1 w-full lg:max-w-md">
-          <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
-          <input 
-            type="text" 
-            id="search-input" 
-            oninput="handleSearch(this.value)"
-            placeholder="Procurar IP, MAC, Nome ou Fabricante..." 
-            class="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition font-sans"
-          />
-        </div>
-
-        <!-- Controls: Status Segmented Filter (Todos / Online / Offline) & Sort -->
-        <div class="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap justify-between lg:justify-end">
+        <!-- Row 1: Primary Command Bar (Search, Status Segment, Sort) -->
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 sm:gap-3.5">
           
-          <!-- Status Filter Pills -->
-          <div class="flex items-center p-1 rounded-xl bg-slate-900/90 border border-slate-800 text-xs shadow-inner">
-            <button 
-              id="status-filter-all" 
-              onclick="setStatusFilter('all')" 
-              class="status-pill active px-2.5 sm:px-3 py-1.5 rounded-lg font-semibold text-xs transition flex items-center gap-1.5"
-              title="Mostrar todos os dispositivos">
-              <span>Todos</span>
-              <span id="badge-count-all" class="text-[10px] font-mono text-cyan-300 font-bold px-1.5 py-0.2 rounded-full bg-slate-800/90">0</span>
-            </button>
-            <button 
-              id="status-filter-online" 
-              onclick="setStatusFilter('online')" 
-              class="status-pill px-2.5 sm:px-3 py-1.5 rounded-lg font-semibold text-xs transition flex items-center gap-1.5 text-slate-400 hover:text-emerald-300"
-              title="Filtrar apenas dispositivos ligados (Online)">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-              <span>Online</span>
-              <span id="badge-count-online" class="text-[10px] font-mono text-emerald-400 font-bold px-1.5 py-0.2 rounded-full bg-slate-800/90">0</span>
-            </button>
-            <button 
-              id="status-filter-offline" 
-              onclick="setStatusFilter('offline')" 
-              class="status-pill px-2.5 sm:px-3 py-1.5 rounded-lg font-semibold text-xs transition flex items-center gap-1.5 text-slate-400 hover:text-slate-200"
-              title="Filtrar apenas dispositivos desligados (Offline)">
-              <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
-              <span>Offline</span>
-              <span id="badge-count-offline" class="text-[10px] font-mono text-slate-400 font-bold px-1.5 py-0.2 rounded-full bg-slate-800/90">0</span>
-            </button>
+          <!-- Search Input with Glass Styling, Cyan Accent, Clear Button & Cmd+K -->
+          <div class="relative flex-1 w-full">
+            <div class="relative flex items-center">
+              <i data-lucide="search" class="w-4 h-4 absolute left-3.5 text-cyan-400/80 pointer-events-none"></i>
+              <input 
+                type="text" 
+                id="search-input" 
+                oninput="handleSearchInput(this)"
+                placeholder="Procurar por IP, MAC, Nome, Fabricante ou Porta..." 
+                class="w-full pl-10 pr-16 py-2.5 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-slate-700/90 focus:border-cyan-500/80 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 transition-all font-sans"
+              />
+              <div class="absolute right-2.5 flex items-center gap-1.5">
+                <button 
+                  id="search-clear-btn" 
+                  onclick="clearSearchInput()" 
+                  type="button"
+                  class="hidden p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+                  title="Limpar pesquisa">
+                  <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                </button>
+                <kbd class="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono text-slate-500 bg-slate-900 border border-slate-800 rounded pointer-events-none select-none">⌘K</kbd>
+              </div>
+            </div>
           </div>
 
-          <!-- Sort Select -->
-          <div class="flex items-center gap-1.5">
-            <span class="text-xs text-slate-400 hidden xl:inline flex items-center gap-1">
-              <i data-lucide="arrow-up-down" class="w-3.5 h-3.5 text-slate-400"></i> Ordenar:
-            </span>
-            <select id="sort-select" onchange="handleSortSelect(this.value)" class="bg-slate-900 border border-slate-800 text-xs text-slate-300 rounded-xl px-2.5 py-2 sm:py-1.5 focus:outline-none focus:border-cyan-500 transition font-sans cursor-pointer">
-              <option value="ip_asc">IP (Crescente)</option>
-              <option value="ip_desc">IP (Decrescente)</option>
-              <option value="name_asc">Nome (A - Z)</option>
-              <option value="name_desc">Nome (Z - A)</option>
-              <option value="category_asc">Categoria</option>
-              <option value="vendor_asc">Fabricante</option>
-              <option value="ports_desc">Portas Abertas</option>
-            </select>
-          </div>
+          <!-- Controls: Status Segmented Switcher & Sort Dropdown -->
+          <div class="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap justify-between lg:justify-end flex-shrink-0">
+            
+            <!-- Status Segmented Switcher (Apple / Linear style) -->
+            <div class="status-segment-group flex items-center p-1 rounded-xl bg-slate-950/90 border border-slate-800/90 text-xs shadow-inner">
+              <button 
+                id="status-filter-all" 
+                onclick="setStatusFilter('all')" 
+                class="status-pill active px-3 py-1.5 rounded-lg font-semibold text-xs transition-all flex items-center gap-2 cursor-pointer"
+                title="Mostrar todos os dispositivos">
+                <span>Todos</span>
+                <span id="badge-count-all" class="font-mono text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-slate-800/90 text-cyan-300">0</span>
+              </button>
+              <button 
+                id="status-filter-online" 
+                onclick="setStatusFilter('online')" 
+                class="status-pill px-3 py-1.5 rounded-lg font-semibold text-xs transition-all flex items-center gap-2 text-slate-400 hover:text-emerald-300 cursor-pointer"
+                title="Filtrar apenas dispositivos ligados (Online)">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]"></span>
+                <span>Online</span>
+                <span id="badge-count-online" class="font-mono text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-slate-800/90 text-emerald-400">0</span>
+              </button>
+              <button 
+                id="status-filter-offline" 
+                onclick="setStatusFilter('offline')" 
+                class="status-pill px-3 py-1.5 rounded-lg font-semibold text-xs transition-all flex items-center gap-2 text-slate-400 hover:text-slate-200 cursor-pointer"
+                title="Filtrar apenas dispositivos desligados (Offline)">
+                <span class="w-2 h-2 rounded-full bg-slate-500"></span>
+                <span>Offline</span>
+                <span id="badge-count-offline" class="font-mono text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-slate-800/90 text-slate-400">0</span>
+              </button>
+            </div>
 
+            <!-- Sort Dropdown with Executive Custom Wrapper -->
+            <div class="relative flex items-center">
+              <div class="absolute left-3 pointer-events-none text-slate-400 flex items-center">
+                <i data-lucide="arrow-up-down" class="w-3.5 h-3.5 text-cyan-400/80"></i>
+              </div>
+              <select 
+                id="sort-select" 
+                onchange="handleSortSelect(this.value)" 
+                class="pl-8 pr-8 py-2 rounded-xl bg-slate-950/90 border border-slate-800 hover:border-slate-700/90 text-xs text-slate-200 font-medium focus:outline-none focus:border-cyan-500/80 focus:ring-1 focus:ring-cyan-500/20 transition-all cursor-pointer appearance-none shadow-inner">
+                <option value="ip_asc">IP (Crescente)</option>
+                <option value="ip_desc">IP (Decrescente)</option>
+                <option value="name_asc">Nome (A - Z)</option>
+                <option value="name_desc">Nome (Z - A)</option>
+                <option value="category_asc">Categoria</option>
+                <option value="vendor_asc">Fabricante</option>
+                <option value="ports_desc">Portas Abertas</option>
+              </select>
+              <div class="absolute right-2.5 pointer-events-none text-slate-400 flex items-center">
+                <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400"></i>
+              </div>
+            </div>
+
+          </div>
         </div>
-      </div>
 
-      <!-- Category Filter Pills -->
-      <div id="category-pills" class="-mx-3 px-3 sm:mx-0 sm:px-0 flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar pb-1 text-xs">
-        <!-- Dynamically rendered pills with badge counters -->
+        <!-- Row 2: Category Taxonomy Navigation Strip -->
+        <div class="pt-2.5 border-t border-slate-800/60 flex items-center gap-2.5 sm:gap-3">
+          <div class="flex items-center gap-1.5 text-slate-400 text-xs font-semibold uppercase tracking-wider hidden md:flex flex-shrink-0">
+            <i data-lucide="layers" class="w-3.5 h-3.5 text-cyan-400/70"></i>
+            <span class="text-[10px] text-slate-400 tracking-wider">Categorias:</span>
+          </div>
+          
+          <div id="category-pills" class="flex-1 flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar py-0.5 text-xs">
+            <!-- Dynamically rendered pills with badges -->
+          </div>
+        </div>
+
       </div>
 
       <!-- Devices Empty State -->
@@ -1225,6 +1256,6 @@
   <!-- Toast Notification Container -->
   <div id="toast-container" class="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 left-4 sm:left-auto z-50 flex flex-col gap-2 pointer-events-none"></div>
 
-  <script src="/app.js?v=10.0"></script>
+  <script src="/app.js?v=10.1"></script>
 </body>
 </html>

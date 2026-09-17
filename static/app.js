@@ -37,7 +37,7 @@ let state = {
 };
 
 const CATEGORIES = {
-  all: { label: "Todos", icon: "layers", colorClass: "cat-router" },
+  all: { label: "Todas", icon: "layout-grid", colorClass: "cat-all" },
   router: { label: "Routers & Rede", icon: "router", colorClass: "cat-router" },
   iot: { label: "IoT & Smart Home", icon: "cpu", colorClass: "cat-iot" },
   tv_media: { label: "Smart TVs & Media", icon: "tv", colorClass: "cat-tv_media" },
@@ -382,6 +382,21 @@ document.addEventListener("DOMContentLoaded", async () => {
       fetchDevices(true);
     }
   }, 3000);
+
+  // Global Keyboard Shortcut: Cmd+K or Ctrl+K to Focus Search
+  window.addEventListener("keydown", (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+      e.preventDefault();
+      if (state.activeTab !== "devices") {
+        switchTab("devices");
+      }
+      const searchInput = document.getElementById("search-input");
+      if (searchInput) {
+        searchInput.focus();
+        searchInput.select();
+      }
+    }
+  });
 });
 
 // Sidebar Navigation Controls (Mobile & Desktop Collapsible)
@@ -636,6 +651,7 @@ function renderKPIs() {
 function setStatusFilter(filter) {
   state.statusFilter = filter;
   updateStatusFilterButtons();
+  renderCategoryPills();
   renderDevices();
 }
 
@@ -670,18 +686,26 @@ function updateStatusFilterButtons() {
   if (bOff) bOff.textContent = offlineCount;
 }
 
-// Render Category Filter Pills
+// Render Category Filter Pills with Adaptive Status Filtering
 function renderCategoryPills() {
   const container = document.getElementById("category-pills");
   if (!container) return;
 
+  // Filter device pool according to active statusFilter so counts are 100% mathematically aligned
+  let targetPool = state.devices;
+  if (state.statusFilter === "online") {
+    targetPool = state.devices.filter(d => (d.status || 'online') === 'online');
+  } else if (state.statusFilter === "offline") {
+    targetPool = state.devices.filter(d => (d.status || 'online') !== 'online');
+  }
+
   // Calculate counts per category
-  const counts = { all: state.devices.length };
+  const counts = { all: targetPool.length };
   Object.keys(CATEGORIES).forEach(k => {
     if (k !== "all") counts[k] = 0;
   });
 
-  state.devices.forEach(d => {
+  targetPool.forEach(d => {
     const cat = d.device_type || "unknown";
     if (counts[cat] !== undefined) counts[cat]++;
     else counts["unknown"]++;
@@ -691,11 +715,15 @@ function renderCategoryPills() {
   Object.entries(CATEGORIES).forEach(([key, meta]) => {
     const isActive = state.selectedCategory === key;
     const count = counts[key] || 0;
+    const isZero = count === 0 && key !== "all";
+
     html += `
-      <button onclick="selectCategory('${key}')" class="cat-pill ${meta.colorClass || ''} ${isActive ? 'active' : ''} flex items-center gap-1.5 px-3 py-1.5 rounded-xl whitespace-nowrap">
-        <i data-lucide="${meta.icon}" class="w-3.5 h-3.5"></i>
-        <span>${meta.label}</span>
-        <span class="ml-1 px-1.5 py-0.2 text-[10px] font-mono rounded-full bg-slate-800/80 ${isActive ? 'text-white' : 'text-slate-400'}">${count}</span>
+      <button onclick="selectCategory('${key}')" 
+        class="cat-pill ${meta.colorClass || ''} ${isActive ? 'active' : ''} ${isZero ? 'cat-empty' : ''} flex items-center gap-1.5 px-3 py-1.5 rounded-xl whitespace-nowrap cursor-pointer transition-all flex-shrink-0"
+        title="${meta.label}: ${count} dispositivo${count === 1 ? '' : 's'}">
+        <i data-lucide="${meta.icon}" class="w-3.5 h-3.5 flex-shrink-0"></i>
+        <span class="font-medium text-xs">${meta.label}</span>
+        <span class="ml-1 px-1.5 py-0.2 text-[10px] font-mono rounded-md ${isActive ? 'bg-white/20 text-white font-bold' : isZero ? 'bg-slate-900/50 text-slate-500 font-normal' : 'bg-slate-800/80 text-slate-300 font-semibold'}">${count}</span>
       </button>
     `;
   });
@@ -708,6 +736,25 @@ function selectCategory(catKey) {
   state.selectedCategory = catKey;
   renderCategoryPills();
   renderDevices();
+}
+
+// Search Input Handlers & Clear Button
+function handleSearchInput(input) {
+  const val = input ? (input.value || '') : '';
+  const clearBtn = document.getElementById("search-clear-btn");
+  if (clearBtn) {
+    clearBtn.classList.toggle("hidden", val.trim().length === 0);
+  }
+  handleSearch(val);
+}
+
+function clearSearchInput() {
+  const input = document.getElementById("search-input");
+  if (input) {
+    input.value = "";
+    input.focus();
+    handleSearchInput(input);
+  }
 }
 
 function handleSearch(val) {
@@ -801,7 +848,10 @@ function getFilteredDevices() {
       const mac = (dev.mac || "").toLowerCase();
       const name = (dev.custom_name || dev.hostname || "").toLowerCase();
       const vendor = (dev.vendor || "").toLowerCase();
-      if (!ip.includes(q) && !mac.includes(q) && !name.includes(q) && !vendor.includes(q)) {
+      const ports = Array.isArray(dev.open_ports) ? dev.open_ports.join(" ") : (dev.open_ports || "");
+      const catMeta = CATEGORIES[dev.device_type] || {};
+      const catLabel = (catMeta.label || dev.device_type || "").toLowerCase();
+      if (!ip.includes(q) && !mac.includes(q) && !name.includes(q) && !vendor.includes(q) && !String(ports).includes(q) && !catLabel.includes(q)) {
         return false;
       }
     }
