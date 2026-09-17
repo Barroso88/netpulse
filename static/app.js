@@ -372,9 +372,47 @@ document.addEventListener("DOMContentLoaded", async () => {
   }, 4000);
 });
 
+// Sidebar Navigation Controls (Mobile & Desktop)
+function openSidebar() {
+  const sb = document.getElementById("app-sidebar");
+  const bd = document.getElementById("sidebar-backdrop");
+  if (sb) sb.classList.remove("-translate-x-full");
+  if (bd) bd.classList.remove("hidden");
+}
+
+function closeSidebar() {
+  const sb = document.getElementById("app-sidebar");
+  const bd = document.getElementById("sidebar-backdrop");
+  if (sb) sb.classList.add("-translate-x-full");
+  if (bd) bd.classList.add("hidden");
+}
+
+function toggleSidebar() {
+  const sb = document.getElementById("app-sidebar");
+  if (sb && sb.classList.contains("-translate-x-full")) {
+    openSidebar();
+  } else {
+    closeSidebar();
+  }
+}
+
 // Switch Main Navigation Tabs
 function switchTab(tabId) {
   state.activeTab = tabId;
+
+  // Sync Top Bar Title
+  const titles = {
+    devices: "Dispositivos Conectados",
+    topology: "Mapa de Rede",
+    latency: "Radar de Latência & Saúde WAN",
+    speedtest: "Teste de Velocidade",
+    alerts: "Segurança & Alertas",
+    agents: "Agentes Autónomos AI"
+  };
+  const topTitle = document.getElementById("top-bar-title");
+  if (topTitle && titles[tabId]) {
+    topTitle.textContent = titles[tabId];
+  }
 
   // Toggle Tab Content (Desktop & Mobile Sync)
   ["devices", "topology", "latency", "speedtest", "alerts", "agents"].forEach(t => {
@@ -389,6 +427,9 @@ function switchTab(tabId) {
       mBtn.classList.toggle("text-slate-400", t !== tabId);
     }
   });
+
+  // Close mobile drawer on tab select
+  closeSidebar();
 
   if (tabId === "topology") {
     renderTopologyMap();
