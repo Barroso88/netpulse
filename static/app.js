@@ -1650,22 +1650,9 @@ async function fetchAgents(silent = false) {
     if (data.agents) {
       cachedAgents = data.agents;
       renderAgents(data.agents);
-      updateAgentsHeaderBadge(data.agents);
     }
   } catch (err) {
     if (!silent) console.error("Erro ao carregar agentes:", err);
-  }
-}
-
-function updateAgentsHeaderBadge(agents) {
-  const badge = document.getElementById("tab-badge-agents");
-  if (!badge) return;
-  const activeCount = agents.filter(a => a.is_enabled).length;
-  badge.textContent = `${activeCount} ATIVOS`;
-  if (activeCount === 0) {
-    badge.className = "px-1.5 py-0.2 rounded-md bg-slate-800 text-slate-400 text-[11px] font-mono";
-  } else {
-    badge.className = "px-1.5 py-0.2 rounded-md bg-cyan-500/20 text-cyan-400 text-[11px] font-mono";
   }
 }
 

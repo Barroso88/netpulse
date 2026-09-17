@@ -211,58 +211,77 @@ header {
 }
 #top-header,
 #main-content {
-  transition: padding-left 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: margin-left 0.28s cubic-bezier(0.16, 1, 0.3, 1), width 0.28s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Default Expanded Widths */
+/* Default Desktop Expanded Widths */
 @media (min-width: 1024px) {
   #app-sidebar {
-    width: 16rem; /* 256px */
+    width: 16rem !important; /* 256px */
+  }
+  #top-header {
+    margin-left: 16rem !important;
+    width: calc(100% - 16rem) !important;
+  }
+  #main-content {
+    margin-left: 16rem !important;
+    width: calc(100% - 16rem) !important;
   }
 }
 @media (min-width: 1280px) {
   #app-sidebar {
-    width: 18rem; /* 288px */
+    width: 17.5rem !important; /* 280px */
+  }
+  #top-header {
+    margin-left: 17.5rem !important;
+    width: calc(100% - 17.5rem) !important;
+  }
+  #main-content {
+    margin-left: 17.5rem !important;
+    width: calc(100% - 17.5rem) !important;
   }
 }
 
 /* Collapsed Mini Icon-Rail on Desktop (>= 1024px) */
 @media (min-width: 1024px) {
   body.sidebar-collapsed #app-sidebar {
-    width: 4.5rem !important; /* 72px */
+    width: 4.25rem !important; /* 68px */
     transform: translateX(0) !important;
   }
   body.sidebar-collapsed #top-header {
-    padding-left: 4.5rem !important;
+    margin-left: 4.25rem !important;
+    width: calc(100% - 4.25rem) !important;
   }
   body.sidebar-collapsed #main-content {
-    padding-left: 4.5rem !important;
+    margin-left: 4.25rem !important;
+    width: calc(100% - 4.25rem) !important;
   }
 
   /* Disappear only titles, texts and badges */
-  body.sidebar-collapsed .sidebar-text {
+  body.sidebar-collapsed .sidebar-text,
+  body.sidebar-collapsed .tab-badge {
     display: none !important;
   }
 
-  /* Show subtle divider when section titles disappear */
-  body.sidebar-collapsed .sidebar-divider {
-    display: block !important;
+  /* Hide brand icon & title block in collapsed mode - keep only single centered hamburger */
+  body.sidebar-collapsed .sidebar-brand-wrapper {
+    display: none !important;
   }
 
   /* Header compact centering */
   body.sidebar-collapsed .sidebar-header-box {
-    padding: 0.75rem 0.35rem !important;
+    padding: 0.75rem 0.25rem !important;
   }
   body.sidebar-collapsed .sidebar-header-box > div {
-    flex-direction: column !important;
-    gap: 0.6rem !important;
     justify-content: center !important;
-    align-items: center !important;
   }
   body.sidebar-collapsed #btn-sidebar-collapse {
     margin: 0 auto !important;
-    width: 2.25rem !important;
-    height: 2.25rem !important;
+    width: 2.5rem !important;
+    height: 2.5rem !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
   }
 
   /* Quick action button becomes centered square icon */
@@ -274,12 +293,17 @@ header {
     border-radius: 0.75rem !important;
   }
 
+  /* Show subtle divider when section titles disappear */
+  body.sidebar-collapsed .sidebar-divider {
+    display: block !important;
+  }
+
   /* Tab buttons remain as centered icon rail items */
   body.sidebar-collapsed .sidebar-tab-btn {
     justify-content: center !important;
-    padding: 0.55rem 0 !important;
-    width: 2.75rem !important;
-    height: 2.75rem !important;
+    padding: 0 !important;
+    width: 2.5rem !important;
+    height: 2.5rem !important;
     margin: 0.25rem auto !important;
     border-radius: 0.75rem !important;
   }
