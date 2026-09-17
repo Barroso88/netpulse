@@ -1028,7 +1028,7 @@ def classify_device(ip: str, mac: str, hostname: str, vendor: str, open_ports: l
     if "xiaomi" in v_lower or "huawei" in v_lower or "oneplus" in v_lower or "oppo" in v_lower or "motorola" in v_lower:
         return "mobile"
 
-    if "intel" in v_lower or "vmware" in v_lower or "synology" in v_lower or "qnap" in v_lower or "lenovo" in v_lower or "dell" in v_lower or "acer" in v_lower or "msi" in v_lower or "micro-star" in v_lower or "raspberry pi" in v_lower or "ixsystems" in v_lower or "truenas" in v_lower or "proxmox" in v_lower or 22 in open_ports or 3389 in open_ports or 445 in open_ports:
+    if "intel" in v_lower or "vmware" in v_lower or "synology" in v_lower or "qnap" in v_lower or "lenovo" in v_lower or "dell" in v_lower or "acer" in v_lower or "msi" in v_lower or "micro-star" in v_lower or "raspberry pi" in v_lower or "ixsystems" in v_lower or "truenas" in v_lower or "proxmox" in v_lower or "unraid" in combined or "castleserver" in combined or "server" in combined or 22 in open_ports or 3389 in open_ports or 445 in open_ports:
         return "computer"
 
     if is_randomized_mac(mac):

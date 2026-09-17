@@ -115,6 +115,12 @@ function getDeviceBrand(d) {
   const vendor = (d.vendor || "").toLowerCase();
   const host = (d.hostname || "").toLowerCase();
 
+  // Pass 0: If it is the host server running NetPulse (Unraid Host)
+  const isSelf = (state.networkInfo && d.ip === state.networkInfo.local_ip);
+  if (isSelf && (!name || name.includes("unraid") || name.includes("castle") || name.includes("servidor") || name.includes("este computador"))) {
+    return { name: "Unraid", svg: BRAND_SVGS.unraid };
+  }
+
   const brandRules = [
     { keys: ["home assistant", "hass"], name: "Home Assistant", svg: BRAND_SVGS.homeAssistant },
     { keys: ["raspberry", "raspi"], name: "Raspberry Pi", svg: BRAND_SVGS.raspberryPi },
@@ -770,7 +776,10 @@ function renderDevices() {
       const brand = getDeviceBrand(d);
       const isGateway = (d.ip === state.networkInfo.gateway_ip);
       const isSelf = (d.ip === state.networkInfo.local_ip);
-      const displayName = d.custom_name || d.hostname || (isGateway ? "Router Gateway" : (isSelf ? "Este Computador" : d.vendor || "Dispositivo"));
+      const defaultSelfName = (d.hostname && d.hostname.toLowerCase().includes("castle"))
+        ? "Servidor Unraid (CastleServer)"
+        : (d.hostname ? `Servidor Unraid (${d.hostname})` : "Servidor Unraid");
+      const displayName = d.custom_name || (isSelf ? defaultSelfName : d.hostname) || (isGateway ? "Router Gateway" : d.vendor || "Dispositivo");
 
       const isOnline = (d.status || 'online') === 'online';
       const statusDot = isOnline
@@ -926,7 +935,10 @@ function openDeviceModal(deviceId) {
   const cat = CATEGORIES[dev.device_type] || CATEGORIES.unknown;
   const isGateway = (dev.ip === state.networkInfo.gateway_ip);
   const isSelf = (dev.ip === state.networkInfo.local_ip);
-  const displayName = dev.custom_name || dev.hostname || (isGateway ? "Router Gateway" : (isSelf ? "Este Computador" : dev.vendor || "Dispositivo"));
+  const defaultSelfName = (dev.hostname && dev.hostname.toLowerCase().includes("castle"))
+    ? "Servidor Unraid (CastleServer)"
+    : (dev.hostname ? `Servidor Unraid (${dev.hostname})` : "Servidor Unraid");
+  const displayName = dev.custom_name || (isSelf ? defaultSelfName : dev.hostname) || (isGateway ? "Router Gateway" : dev.vendor || "Dispositivo");
 
   // Header & Avatar
   const avatarEl = document.getElementById("m-dev-avatar");

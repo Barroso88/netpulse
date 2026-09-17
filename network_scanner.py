@@ -82,6 +82,67 @@ def get_local_interface_and_ip() -> tuple:
 
     return iface, local_ip
 
+def get_interface_mac(iface: str = "") -> str:
+    """Retrieves physical MAC address of the local network interface (Linux & macOS)."""
+    # 1. Check Linux sysfs candidate interfaces
+    candidates = [iface, "br0", "eth0", "bond0", "enp3s0", "enp4s0"]
+    for cand in candidates:
+        if not cand:
+            continue
+        p = f"/sys/class/net/{cand}/address"
+        if os.path.exists(p):
+            try:
+                with open(p, "r") as f:
+                    mac = f.read().strip()
+                    if mac and mac != "00:00:00:00:00:00" and not mac.lower().startswith("02:42:"):
+                        return normalize_mac(mac)
+            except Exception:
+                pass
+
+    # 2. Iterate all /sys/class/net/*/address on Linux
+    if os.path.exists("/sys/class/net"):
+        try:
+            for entry in os.listdir("/sys/class/net"):
+                if entry in ["lo"] or entry.startswith("docker") or entry.startswith("veth") or entry.startswith("virbr") or (entry.startswith("br-") and entry != "br0"):
+                    continue
+                p = f"/sys/class/net/{entry}/address"
+                if os.path.exists(p):
+                    try:
+                        with open(p, "r") as f:
+                            mac = f.read().strip()
+                            if mac and mac != "00:00:00:00:00:00" and not mac.lower().startswith("02:42:"):
+                                return normalize_mac(mac)
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
+    # 3. Try Linux 'ip link' command
+    try:
+        cmd = ["ip", "link", "show", iface] if iface else ["ip", "link"]
+        out = subprocess.check_output(cmd, universal_newlines=True, stderr=subprocess.DEVNULL)
+        m = re.search(r'link/ether\s+([0-9a-fA-F:]{17})', out)
+        if m:
+            mac = normalize_mac(m.group(1))
+            if mac and not mac.lower().startswith("02:42:"):
+                return mac
+    except Exception:
+        pass
+
+    # 4. macOS ifconfig fallback
+    try:
+        cmd = ["ifconfig", iface] if iface else ["ifconfig"]
+        out = subprocess.check_output(cmd, universal_newlines=True, stderr=subprocess.DEVNULL)
+        m = re.search(r'ether\s+([0-9a-fA-F:]{11,17})', out)
+        if m:
+            mac = normalize_mac(m.group(1))
+            if mac and not mac.lower().startswith("02:42:"):
+                return mac
+    except Exception:
+        pass
+
+    return ""
+
 def get_network_info() -> dict:
     """Returns network info dictionary with gateway_ip, local_ip, and interface."""
     gw = get_default_gateway() or "192.168.1.1"
@@ -237,6 +298,18 @@ def scan_network_full(quick: bool = False) -> dict:
         refresh_arp_cache(subnet_prefix)
 
     raw_devices = parse_arp_table(gateway_ip, local_ip)
+
+    # Ensure local host (e.g. Unraid Server running NetPulse in host mode) is always present.
+    # The Linux kernel never includes local IP in ARP tables (/proc/net/arp) because it routes via loopback.
+    if local_ip and not local_ip.startswith("127."):
+        host_mac = get_interface_mac(iface)
+        if host_mac and not any(d["ip"] == local_ip or d["mac"] == host_mac for d in raw_devices):
+            raw_devices.insert(0, {
+                "ip": local_ip,
+                "mac": host_mac,
+                "raw_line": f"localhost {local_ip} {host_mac}"
+            })
+
     active_macs = set()
     result_devices = []
     new_devices_found = 0
@@ -250,10 +323,16 @@ def scan_network_full(quick: bool = False) -> dict:
         vendor = lookup_vendor(mac)
         hostname = resolve_hostname(ip)
 
-        # If it's our own machine
+        # If it's our own host machine (e.g. Unraid Server running NetPulse)
         if ip == local_ip:
             if not hostname:
                 hostname = socket.gethostname()
+            if not vendor or vendor == "Desconhecido":
+                hw_vendor = lookup_vendor(mac)
+                if hw_vendor and hw_vendor != "Desconhecido":
+                    vendor = hw_vendor
+                else:
+                    vendor = "Micro-Star INTL (MSI)" if mac.lower().startswith("34:5a:60") else "Servidor Unraid"
 
         # Classify device
         device_type = classify_device(ip, mac, hostname, vendor, is_gateway=is_gateway)
