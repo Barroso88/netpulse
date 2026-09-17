@@ -85,7 +85,12 @@ def get_db_connection():
         except Exception as e:
             print(f"⚠️ Falha ao ligar ao PostgreSQL ({e}). A usar SQLite de contingência.")
 
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=20.0)
+    try:
+        conn.execute("PRAGMA journal_mode=WAL;")
+        conn.execute("PRAGMA synchronous=NORMAL;")
+    except Exception:
+        pass
     conn.row_factory = sqlite3.Row
     return DBWrapper(conn, is_pg=False)
 

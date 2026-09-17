@@ -360,16 +360,27 @@ document.addEventListener("DOMContentLoaded", async () => {
     initAppData();
   }
 
-  // Periodic background refresh
+  // Periodic background real-time telemetry & device synchronization
+  let pollTick = 0;
   setInterval(() => {
     if (!state.isAuthenticated) return;
-    if (state.activeTab === "latency" || state.activeTab === "devices") {
+    pollTick++;
+
+    // Telemetry: Router & WAN Latency
+    if (state.activeTab === "latency" || state.activeTab === "devices" || state.activeTab === "topology") {
       fetchRouterLatency(true);
     } else if (state.activeTab === "agents") {
       fetchAgents(true);
       fetchAgentLogs(true);
     }
-  }, 4000);
+
+    // Real-Time Device Inventory Auto-Sync:
+    // Every ~6 seconds, silently fetch live device inventory from backend
+    // to reflect newly joined devices, disconnects, and online/offline status automatically
+    if (pollTick % 2 === 0 && !state.isScanning) {
+      fetchDevices(true);
+    }
+  }, 3000);
 });
 
 // Sidebar Navigation Controls (Mobile & Desktop Collapsible)
@@ -478,8 +489,8 @@ function setViewMode(mode) {
   renderDevices();
 }
 
-// Fetch Devices from API
-async function fetchDevices() {
+// Fetch Devices from API with smart differential DOM rendering
+async function fetchDevices(silent = false) {
   try {
     const res = await fetch("/api/devices");
     if (res.status === 401) {
@@ -487,17 +498,28 @@ async function fetchDevices() {
       return;
     }
     const data = await res.json();
-    state.devices = data.devices || [];
+    const newDevices = data.devices || [];
+
+    // Serialize state signature to skip DOM thrashing when nothing changed
+    const stateSig = newDevices.map(d => `${d.id}:${d.ip}:${d.status}:${d.is_new}:${d.custom_name || ''}`).join("|");
+    const hasChanged = (state._devicesSignature !== stateSig);
+
+    state.devices = newDevices;
     if (data.network_info) {
       state.networkInfo = data.network_info;
       updateNetworkHeader();
     }
-    renderKPIs();
-    renderCategoryPills();
-    renderDevices();
-    if (state.activeTab === "topology") {
-      renderTopologyMap();
+
+    if (hasChanged || !silent) {
+      state._devicesSignature = stateSig;
+      renderKPIs();
+      renderCategoryPills();
+      renderDevices();
+      if (state.activeTab === "topology") {
+        renderTopologyMap();
+      }
     }
+
     const lastUp = document.getElementById("last-updated-text");
     if (lastUp) lastUp.textContent = `Atualizado: ${new Date().toLocaleTimeString()}`;
   } catch (err) {

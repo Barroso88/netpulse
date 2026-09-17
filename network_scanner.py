@@ -7,9 +7,12 @@ import subprocess
 import socket
 import re
 import os
+import threading
 from concurrent.futures import ThreadPoolExecutor
 from oui_database import lookup_vendor, normalize_mac, classify_device
 import database
+
+_SCAN_LOCK = threading.Lock()
 
 def get_default_gateway() -> str:
     """Extracts the default gateway IP from routing tables (Linux / macOS)."""
@@ -286,82 +289,83 @@ def scan_network_full(quick: bool = False) -> dict:
     4. Resolves vendor and device classification
     5. Saves into SQLite database
     """
-    database.init_db()
-    gateway_ip = get_default_gateway()
-    iface, local_ip = get_local_interface_and_ip()
+    with _SCAN_LOCK:
+        database.init_db()
+        gateway_ip = get_default_gateway()
+        iface, local_ip = get_local_interface_and_ip()
 
-    subnet_prefix = ".".join(local_ip.split(".")[:3]) + "."
-    if subnet_prefix == "127.0.0.":
-        subnet_prefix = ".".join(gateway_ip.split(".")[:3]) + "."
+        subnet_prefix = ".".join(local_ip.split(".")[:3]) + "."
+        if subnet_prefix == "127.0.0.":
+            subnet_prefix = ".".join(gateway_ip.split(".")[:3]) + "."
 
-    if not quick:
-        refresh_arp_cache(subnet_prefix)
+        if not quick:
+            refresh_arp_cache(subnet_prefix)
 
-    raw_devices = parse_arp_table(gateway_ip, local_ip)
+        raw_devices = parse_arp_table(gateway_ip, local_ip)
 
-    # Ensure local host (e.g. Unraid Server running NetPulse in host mode) is always present.
-    # The Linux kernel never includes local IP in ARP tables (/proc/net/arp) because it routes via loopback.
-    if local_ip and not local_ip.startswith("127."):
-        host_mac = get_interface_mac(iface)
-        if host_mac and not any(d["ip"] == local_ip or d["mac"] == host_mac for d in raw_devices):
-            raw_devices.insert(0, {
-                "ip": local_ip,
-                "mac": host_mac,
-                "raw_line": f"localhost {local_ip} {host_mac}"
-            })
+        # Ensure local host (e.g. Unraid Server running NetPulse in host mode) is always present.
+        # The Linux kernel never includes local IP in ARP tables (/proc/net/arp) because it routes via loopback.
+        if local_ip and not local_ip.startswith("127."):
+            host_mac = get_interface_mac(iface)
+            if host_mac and not any(d["ip"] == local_ip or d["mac"] == host_mac for d in raw_devices):
+                raw_devices.insert(0, {
+                    "ip": local_ip,
+                    "mac": host_mac,
+                    "raw_line": f"localhost {local_ip} {host_mac}"
+                })
 
-    active_macs = set()
-    result_devices = []
-    new_devices_found = 0
+        active_macs = set()
+        result_devices = []
+        new_devices_found = 0
 
-    for dev in raw_devices:
-        ip = dev["ip"]
-        mac = dev["mac"]
-        active_macs.add(mac)
+        for dev in raw_devices:
+            ip = dev["ip"]
+            mac = dev["mac"]
+            active_macs.add(mac)
 
-        is_gateway = (ip == gateway_ip)
-        vendor = lookup_vendor(mac)
-        hostname = resolve_hostname(ip)
+            is_gateway = (ip == gateway_ip)
+            vendor = lookup_vendor(mac)
+            hostname = resolve_hostname(ip)
 
-        # If it's our own host machine (e.g. Unraid Server running NetPulse)
-        if ip == local_ip:
-            if not hostname:
-                hostname = socket.gethostname()
-            if not vendor or vendor == "Desconhecido":
-                hw_vendor = lookup_vendor(mac)
-                if hw_vendor and hw_vendor != "Desconhecido":
-                    vendor = hw_vendor
-                else:
-                    vendor = "Micro-Star INTL (MSI)" if mac.lower().startswith("34:5a:60") else "Servidor Unraid"
+            # If it's our own host machine (e.g. Unraid Server running NetPulse)
+            if ip == local_ip:
+                if not hostname:
+                    hostname = socket.gethostname()
+                if not vendor or vendor == "Desconhecido":
+                    hw_vendor = lookup_vendor(mac)
+                    if hw_vendor and hw_vendor != "Desconhecido":
+                        vendor = hw_vendor
+                    else:
+                        vendor = "Micro-Star INTL (MSI)" if mac.lower().startswith("34:5a:60") else "Servidor Unraid"
 
-        # Classify device
-        device_type = classify_device(ip, mac, hostname, vendor, is_gateway=is_gateway)
+            # Classify device
+            device_type = classify_device(ip, mac, hostname, vendor, is_gateway=is_gateway)
 
-        saved_dev, is_new = database.upsert_device(ip, mac, hostname, vendor, device_type)
-        if is_new:
-            new_devices_found += 1
-        result_devices.append(saved_dev)
+            saved_dev, is_new = database.upsert_device(ip, mac, hostname, vendor, device_type)
+            if is_new:
+                new_devices_found += 1
+            result_devices.append(saved_dev)
 
-    # Mark offline devices
-    database.mark_offline_stale_devices(active_macs)
+        # Mark offline devices
+        database.mark_offline_stale_devices(active_macs)
 
-    # Sort results with gateway first, then by IP
-    def sort_key(d):
-        if d["ip"] == gateway_ip:
-            return 0
-        try:
-            return int(d["ip"].split(".")[-1])
-        except Exception:
-            return 999
+        # Sort results with gateway first, then by IP
+        def sort_key(d):
+            if d["ip"] == gateway_ip:
+                return 0
+            try:
+                return int(d["ip"].split(".")[-1])
+            except Exception:
+                return 999
 
-    result_devices.sort(key=sort_key)
+        result_devices.sort(key=sort_key)
 
-    return {
-        "gateway_ip": gateway_ip,
-        "local_ip": local_ip,
-        "interface": iface,
-        "subnet": f"{subnet_prefix}0/24",
-        "total_active": len(result_devices),
-        "new_devices_count": new_devices_found,
-        "devices": result_devices
-    }
+        return {
+            "gateway_ip": gateway_ip,
+            "local_ip": local_ip,
+            "interface": iface,
+            "subnet": f"{subnet_prefix}0/24",
+            "total_active": len(result_devices),
+            "new_devices_count": new_devices_found,
+            "devices": result_devices
+        }

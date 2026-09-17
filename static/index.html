@@ -48,7 +48,7 @@
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <link rel="stylesheet" href="/styles.css?v=9.6">
+  <link rel="stylesheet" href="/styles.css?v=9.7">
 </head>
 <body class="bg-darkbg text-slate-100 min-h-screen font-sans antialiased selection:bg-cyan-500 selection:text-black">
 
@@ -211,10 +211,13 @@
 
       <!-- Right: Alerts + Status -->
       <div class="flex items-center gap-2 sm:gap-3">
-        <!-- Live Status Pill -->
-        <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/80 border border-slate-800 text-xs text-slate-300 shadow-inner">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span class="text-slate-300 font-medium">Rede Online</span>
+        <!-- Live Real-Time Telemetry Pill -->
+        <div class="hidden sm:flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-slate-900/80 border border-slate-800 text-xs text-slate-300 shadow-inner" title="Monitorização contínua em tempo real ativa">
+          <span class="relative flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          <span class="text-slate-300 font-medium text-[11px]">Tempo Real</span>
         </div>
 
         <!-- Alerts Bell Trigger -->
@@ -1130,6 +1133,6 @@
   <!-- Toast Notification Container -->
   <div id="toast-container" class="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 left-4 sm:left-auto z-50 flex flex-col gap-2 pointer-events-none"></div>
 
-  <script src="/app.js?v=9.6"></script>
+  <script src="/app.js?v=9.7"></script>
 </body>
 </html>

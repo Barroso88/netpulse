@@ -268,12 +268,18 @@ header {
     display: none !important;
   }
 
-  /* Header compact centering */
+  /* Header compact centering with proper breathing room */
   body.sidebar-collapsed .sidebar-header-box {
     padding: 0.75rem 0.25rem !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 0.625rem !important;
   }
   body.sidebar-collapsed .sidebar-header-box > div {
     justify-content: center !important;
+    width: 100% !important;
+    margin: 0 !important;
   }
   body.sidebar-collapsed #btn-sidebar-collapse {
     margin: 0 auto !important;
@@ -284,13 +290,16 @@ header {
     justify-content: center !important;
   }
 
-  /* Quick action button becomes centered square icon */
+  /* Quick action button becomes centered square icon with balanced separation */
   body.sidebar-collapsed .sidebar-action-btn {
     width: 2.5rem !important;
     height: 2.5rem !important;
     padding: 0 !important;
-    margin: 0 auto !important;
+    margin: 0.625rem auto 0 auto !important;
     border-radius: 0.75rem !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
   }
 
   /* Show subtle divider when section titles disappear */

@@ -396,6 +396,7 @@ class NetPulseHandler(http.server.SimpleHTTPRequestHandler):
             self.send_error(500, f"Erro ao ler ficheiro: {e}")
 
 def background_monitor():
+    scan_tick = 0
     while True:
         try:
             gw = network_scanner.get_default_gateway()
@@ -403,7 +404,20 @@ def background_monitor():
                 latency_monitor.check_router_and_internet_health(gw)
         except Exception:
             pass
-        time.sleep(30)
+
+        try:
+            scan_tick += 1
+            # Real-Time Continuous Network Discovery Engine:
+            # - Quick scan every 20s (reads kernel ARP table and updates device status with 0 CPU overhead)
+            # - Active subnet ARP sweep every ~60s (tick % 3 == 0) to discover sleeping Wi-Fi / mobile devices
+            if scan_tick % 3 == 0:
+                network_scanner.scan_network_full(quick=False)
+            else:
+                network_scanner.scan_network_full(quick=True)
+        except Exception:
+            pass
+
+        time.sleep(20)
 
 def main():
     database.init_db()
