@@ -688,3 +688,77 @@ input:checked + .agent-slider:before {
   }
 }
 
+/* ========================================================================= */
+/* TOPOLOGY MAP - NETWORK GRAPH ENGINE                                       */
+/* ========================================================================= */
+
+.topology-container {
+  position: relative;
+  overflow: hidden;
+  background-color: #080c16;
+  background-image: 
+    radial-gradient(rgba(34, 211, 238, 0.08) 1px, transparent 1px),
+    radial-gradient(ellipse 60% 50% at 50% 50%, rgba(6, 182, 212, 0.04), transparent 70%);
+  background-size: 24px 24px, 100% 100%;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.topology-container:active {
+  cursor: grabbing;
+}
+
+/* Topology Animated Links */
+.topology-link {
+  fill: none;
+  stroke: rgba(148, 163, 184, 0.22);
+  stroke-width: 1.5;
+  transition: stroke 0.25s, stroke-width 0.25s;
+}
+.topology-link.active {
+  stroke: rgba(6, 182, 212, 0.55);
+  stroke-width: 2;
+}
+.topology-link.highlighted {
+  stroke: #38bdf8;
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.8));
+}
+
+/* Animated Data Particles Along Links */
+.topology-particle {
+  fill: #38bdf8;
+  filter: drop-shadow(0 0 4px #38bdf8);
+}
+
+/* Orbital Rings in Radial Layout */
+.topology-orbit-ring {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.045);
+  stroke-width: 1;
+  stroke-dasharray: 4 6;
+}
+
+/* Nodes Styling */
+.topology-node {
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), filter 0.2s ease;
+}
+.topology-node:hover {
+  filter: drop-shadow(0 0 14px rgba(6, 182, 212, 0.75));
+}
+.topology-node.searched {
+  animation: pulse-search 1.2s infinite ease-in-out;
+}
+@keyframes pulse-search {
+  0%, 100% { filter: drop-shadow(0 0 8px rgba(234, 179, 8, 0.7)); transform: scale(1); }
+  50% { filter: drop-shadow(0 0 20px rgba(234, 179, 8, 1)); transform: scale(1.15); }
+}
+
+/* Floating Tooltip */
+#topology-tooltip {
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+

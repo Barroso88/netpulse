@@ -19,7 +19,20 @@ let state = {
   isTestingSpeed: false,
   privacyMode: localStorage.getItem("netpulse_privacy_mode") === "true",
   authRequired: false,
-  isAuthenticated: true
+  isAuthenticated: true,
+  topology: {
+    layout: "radial",
+    category: "all",
+    onlineOnly: false,
+    searchQuery: "",
+    zoom: 1,
+    panX: 0,
+    panY: 0,
+    isPanning: false,
+    startX: 0,
+    startY: 0,
+    initialized: false
+  }
 };
 
 const CATEGORIES = {
@@ -364,7 +377,7 @@ function switchTab(tabId) {
   state.activeTab = tabId;
 
   // Toggle Tab Content (Desktop & Mobile Sync)
-  ["devices", "latency", "speedtest", "alerts", "agents"].forEach(t => {
+  ["devices", "topology", "latency", "speedtest", "alerts", "agents"].forEach(t => {
     const el = document.getElementById(`tab-content-${t}`);
     const btn = document.getElementById(`tab-btn-${t}`);
     const mBtn = document.getElementById(`m-tab-${t}`);
@@ -377,7 +390,9 @@ function switchTab(tabId) {
     }
   });
 
-  if (tabId === "latency") {
+  if (tabId === "topology") {
+    renderTopologyMap();
+  } else if (tabId === "latency") {
     fetchRouterLatency();
   } else if (tabId === "speedtest") {
     fetchSpeedtestHistory();
@@ -414,6 +429,9 @@ async function fetchDevices() {
     renderKPIs();
     renderCategoryPills();
     renderDevices();
+    if (state.activeTab === "topology") {
+      renderTopologyMap();
+    }
     const lastUp = document.getElementById("last-updated-text");
     if (lastUp) lastUp.textContent = `Atualizado: ${new Date().toLocaleTimeString()}`;
   } catch (err) {
@@ -2007,6 +2025,711 @@ function renderDnsBenchmark(data) {
   }).join("");
 
   if (window.lucide) lucide.createIcons();
+}
+
+/* ========================================================================= */
+/* INTERACTIVE TOPOLOGY GRAPH ENGINE (RADIAL ORBIT & HIERARCHICAL TREE)      */
+/* ========================================================================= */
+
+let topologyNodesMap = new Map();
+
+function initTopologyEvents() {
+  const wrapper = document.getElementById("topology-wrapper");
+  if (!wrapper || state.topology.initialized) return;
+  state.topology.initialized = true;
+
+  // Mouse Drag (Pan)
+  wrapper.addEventListener("mousedown", (e) => {
+    if (e.target.closest(".topology-node")) return;
+    state.topology.isPanning = true;
+    state.topology.startX = e.clientX - state.topology.panX;
+    state.topology.startY = e.clientY - state.topology.panY;
+    wrapper.style.cursor = "grabbing";
+  });
+
+  window.addEventListener("mousemove", (e) => {
+    if (!state.topology.isPanning) return;
+    state.topology.panX = e.clientX - state.topology.startX;
+    state.topology.panY = e.clientY - state.topology.startY;
+    applyTopologyTransform();
+  });
+
+  window.addEventListener("mouseup", () => {
+    if (state.topology.isPanning) {
+      state.topology.isPanning = false;
+      wrapper.style.cursor = "grab";
+    }
+  });
+
+  // Mouse Wheel (Zoom centered on cursor)
+  wrapper.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const rect = wrapper.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    const zoomFactor = e.deltaY < 0 ? 1.15 : 0.87;
+    const newZoom = Math.max(0.3, Math.min(3.5, state.topology.zoom * zoomFactor));
+
+    state.topology.panX = mouseX - (mouseX - state.topology.panX) * (newZoom / state.topology.zoom);
+    state.topology.panY = mouseY - (mouseY - state.topology.panY) * (newZoom / state.topology.zoom);
+    state.topology.zoom = newZoom;
+    applyTopologyTransform();
+  }, { passive: false });
+
+  // Touch Events for Mobile / Tablet Pan & Pinch Zoom
+  let initialPinchDist = null;
+  wrapper.addEventListener("touchstart", (e) => {
+    if (e.touches.length === 1) {
+      if (e.target.closest(".topology-node")) return;
+      state.topology.isPanning = true;
+      state.topology.startX = e.touches[0].clientX - state.topology.panX;
+      state.topology.startY = e.touches[0].clientY - state.topology.panY;
+    } else if (e.touches.length === 2) {
+      state.topology.isPanning = false;
+      initialPinchDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+    }
+  }, { passive: true });
+
+  wrapper.addEventListener("touchmove", (e) => {
+    if (e.touches.length === 1 && state.topology.isPanning) {
+      state.topology.panX = e.touches[0].clientX - state.topology.startX;
+      state.topology.panY = e.touches[0].clientY - state.topology.startY;
+      applyTopologyTransform();
+    } else if (e.touches.length === 2 && initialPinchDist) {
+      const currentDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const zoomFactor = currentDist / initialPinchDist;
+      initialPinchDist = currentDist;
+      state.topology.zoom = Math.max(0.3, Math.min(3.5, state.topology.zoom * zoomFactor));
+      applyTopologyTransform();
+    }
+  }, { passive: true });
+
+  wrapper.addEventListener("touchend", () => {
+    state.topology.isPanning = false;
+    initialPinchDist = null;
+  });
+
+  // Track mouse move for floating tooltip position
+  wrapper.addEventListener("mousemove", (e) => {
+    const tooltip = document.getElementById("topology-tooltip");
+    if (tooltip && !tooltip.classList.contains("hidden")) {
+      const rect = wrapper.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      tooltip.style.left = `${x}px`;
+      tooltip.style.top = `${y}px`;
+    }
+  });
+
+  // Auto-resize handler
+  window.addEventListener("resize", () => {
+    if (state.activeTab === "topology") {
+      renderTopologyMap();
+    }
+  });
+}
+
+function applyTopologyTransform() {
+  const g = document.getElementById("topology-viewport");
+  if (g) {
+    g.setAttribute("transform", `translate(${state.topology.panX}, ${state.topology.panY}) scale(${state.topology.zoom})`);
+  }
+}
+
+function setTopologyLayout(layout) {
+  state.topology.layout = layout;
+  const btnR = document.getElementById("topo-btn-radial");
+  const btnT = document.getElementById("topo-btn-tree");
+  if (btnR && btnT) {
+    btnR.classList.toggle("bg-cyan-500/20", layout === "radial");
+    btnR.classList.toggle("text-cyan-300", layout === "radial");
+    btnR.classList.toggle("border-cyan-500/40", layout === "radial");
+    btnR.classList.toggle("text-slate-400", layout !== "radial");
+    btnR.classList.toggle("font-bold", layout === "radial");
+
+    btnT.classList.toggle("bg-cyan-500/20", layout === "tree");
+    btnT.classList.toggle("text-cyan-300", layout === "tree");
+    btnT.classList.toggle("border-cyan-500/40", layout === "tree");
+    btnT.classList.toggle("text-slate-400", layout !== "tree");
+    btnT.classList.toggle("font-bold", layout === "tree");
+  }
+  topologyResetZoom();
+  renderTopologyMap();
+}
+
+function handleTopologyCategory(cat) {
+  state.topology.category = cat;
+  renderTopologyMap();
+}
+
+function toggleTopologyOnlineOnly() {
+  state.topology.onlineOnly = !state.topology.onlineOnly;
+  const dot = document.getElementById("topo-online-dot");
+  const btn = document.getElementById("topo-toggle-online");
+  if (dot && btn) {
+    if (state.topology.onlineOnly) {
+      btn.classList.add("bg-emerald-500/20", "text-emerald-300", "border-emerald-500/40");
+      btn.classList.remove("bg-slate-900", "text-slate-300", "border-slate-800");
+    } else {
+      btn.classList.remove("bg-emerald-500/20", "text-emerald-300", "border-emerald-500/40");
+      btn.classList.add("bg-slate-900", "text-slate-300", "border-slate-800");
+    }
+  }
+  renderTopologyMap();
+}
+
+function handleTopologySearch(val) {
+  state.topology.searchQuery = (val || "").trim().toLowerCase();
+  highlightTopologySearchedNodes();
+}
+
+function highlightTopologySearchedNodes() {
+  const query = state.topology.searchQuery;
+  const nodes = document.querySelectorAll(".topology-node");
+  nodes.forEach(node => {
+    const text = (node.getAttribute("data-search") || "").toLowerCase();
+    const matches = query && text.includes(query);
+    node.classList.toggle("searched", !!matches);
+  });
+}
+
+function topologyZoom(factor) {
+  const wrapper = document.getElementById("topology-wrapper");
+  if (!wrapper) return;
+  const rect = wrapper.getBoundingClientRect();
+  const cx = rect.width / 2;
+  const cy = rect.height / 2;
+
+  const newZoom = Math.max(0.3, Math.min(3.5, state.topology.zoom * factor));
+  state.topology.panX = cx - (cx - state.topology.panX) * (newZoom / state.topology.zoom);
+  state.topology.panY = cy - (cy - state.topology.panY) * (newZoom / state.topology.zoom);
+  state.topology.zoom = newZoom;
+  applyTopologyTransform();
+}
+
+function topologyResetZoom() {
+  const wrapper = document.getElementById("topology-wrapper");
+  if (!wrapper) return;
+  const rect = wrapper.getBoundingClientRect();
+  state.topology.zoom = rect.width < 640 ? 0.72 : (state.topology.layout === "tree" ? 0.85 : 0.9);
+  state.topology.panX = 0;
+  state.topology.panY = 0;
+  applyTopologyTransform();
+}
+
+function renderTopologyMap() {
+  const wrapper = document.getElementById("topology-wrapper");
+  const viewport = document.getElementById("topology-viewport");
+  if (!wrapper || !viewport) return;
+
+  initTopologyEvents();
+
+  const width = wrapper.clientWidth || 1000;
+  const height = wrapper.clientHeight || 650;
+  const cx = width / 2;
+  const cy = height / 2;
+
+  // 1. Identify Anchor Devices
+  const gwIp = state.networkInfo.gateway_ip || "192.168.1.1";
+  const localIp = state.networkInfo.local_ip || "192.168.1.152";
+
+  const gwDev = state.devices.find(d => d.ip === gwIp);
+  const hostDev = state.devices.find(d => d.ip === localIp || (d.hostname || "").toLowerCase().includes("castle"));
+
+  // 2. Filter Devices for Leaf Graph
+  let leafDevices = state.devices.filter(d => d.ip !== gwIp && d.ip !== localIp);
+
+  if (state.topology.category !== "all") {
+    leafDevices = leafDevices.filter(d => (d.device_type || "unknown") === state.topology.category);
+  }
+  if (state.topology.onlineOnly) {
+    leafDevices = leafDevices.filter(d => (d.status || "online") === "online");
+  }
+
+  // Update Stats Counter
+  const totalCountEl = document.getElementById("topo-stat-total");
+  const onlineCountEl = document.getElementById("topo-stat-online");
+  const onlineCount = leafDevices.filter(d => (d.status || "online") === "online").length + 2; // + Gateway & Host
+  if (totalCountEl) totalCountEl.textContent = leafDevices.length + 2;
+  if (onlineCountEl) onlineCountEl.textContent = onlineCount;
+
+  // 3. Build Node & Link Collections
+  topologyNodesMap.clear();
+
+  const nodes = [];
+  const links = [];
+
+  // Anchor 1: WAN / Internet
+  const wanNode = {
+    id: "node-wan",
+    type: "wan",
+    label: "Internet (WAN)",
+    sublabel: "Cloudflare 1.1.1.1",
+    status: "online",
+    radius: 26,
+    iconSvg: `<i data-lucide="globe" class="w-5 h-5 text-cyan-400"></i>`,
+    accentColor: "#06b6d4"
+  };
+
+  // Anchor 2: Gateway Router
+  const gwNode = {
+    id: "node-gateway",
+    type: "gateway",
+    devId: gwDev ? gwDev.id : null,
+    dev: gwDev,
+    label: gwDev && gwDev.custom_name ? gwDev.custom_name : "Router Gateway",
+    sublabel: gwIp,
+    status: (gwDev ? gwDev.status : "online") || "online",
+    radius: 32,
+    iconSvg: `<i data-lucide="router" class="w-7 h-7 text-blue-400"></i>`,
+    accentColor: "#3b82f6"
+  };
+
+  // Anchor 3: Servidor Unraid (Host)
+  const hostLabel = hostDev && hostDev.custom_name ? hostDev.custom_name : ((hostDev && hostDev.hostname) ? `Unraid (${hostDev.hostname})` : "Servidor Unraid");
+  const hostNode = {
+    id: "node-host",
+    type: "host",
+    devId: hostDev ? hostDev.id : null,
+    dev: hostDev,
+    label: hostLabel,
+    sublabel: localIp,
+    status: (hostDev ? hostDev.status : "online") || "online",
+    radius: 28,
+    iconSvg: BRAND_SVGS.unraid,
+    accentColor: "#F15A2C"
+  };
+
+  // Group leaf devices by Category
+  const catGroups = {};
+  leafDevices.forEach(d => {
+    const cat = d.device_type || "unknown";
+    if (!catGroups[cat]) catGroups[cat] = [];
+    catGroups[cat].push(d);
+  });
+
+  const catKeys = Object.keys(catGroups);
+
+  // 4. Calculate Coordinates based on Layout Mode
+  let orbitRingsSvg = "";
+
+  if (state.topology.layout === "radial") {
+    // -----------------------------------------------------------------
+    // RADIAL ORBITAL LAYOUT
+    // -----------------------------------------------------------------
+    gwNode.x = cx;
+    gwNode.y = cy;
+
+    const r1 = 125;
+    const r2 = 245;
+    const r3 = 395;
+
+    // Orbit Rings
+    orbitRingsSvg = `
+      <circle cx="${cx}" cy="${cy}" r="${r1}" class="topology-orbit-ring" />
+      <circle cx="${cx}" cy="${cy}" r="${r2}" class="topology-orbit-ring" />
+      <circle cx="${cx}" cy="${cy}" r="${r3}" class="topology-orbit-ring" />
+    `;
+
+    // Anchor: WAN (Top) & Unraid (Bottom)
+    wanNode.x = cx;
+    wanNode.y = cy - r1;
+
+    hostNode.x = cx;
+    hostNode.y = cy + r1;
+
+    nodes.push(gwNode, wanNode, hostNode);
+    topologyNodesMap.set(gwNode.id, gwNode);
+    topologyNodesMap.set(wanNode.id, wanNode);
+    topologyNodesMap.set(hostNode.id, hostNode);
+
+    links.push({
+      source: wanNode,
+      target: gwNode,
+      stroke: "url(#link-grad-wan)",
+      isPrimary: true
+    });
+    links.push({
+      source: gwNode,
+      target: hostNode,
+      stroke: "url(#link-grad-unraid)",
+      isPrimary: true
+    });
+
+    // Distribute Hubs on Ring 2
+    const numHubs = catKeys.length;
+    catKeys.forEach((catKey, i) => {
+      const catConfig = CATEGORIES[catKey] || CATEGORIES.unknown;
+      const devs = catGroups[catKey];
+
+      // Distribute hubs across circle
+      const angleStep = (2 * Math.PI) / (numHubs || 1);
+      const hubAngle = angleStep * i - Math.PI / 2 + 0.45;
+
+      const hubNode = {
+        id: `hub-${catKey}`,
+        type: "hub",
+        catKey: catKey,
+        label: catConfig.label,
+        sublabel: `${devs.length} disp.`,
+        status: "online",
+        radius: 24,
+        iconSvg: `<i data-lucide="${catConfig.icon}" class="w-5 h-5 text-cyan-300"></i>`,
+        accentColor: "#06b6d4",
+        x: cx + r2 * Math.cos(hubAngle),
+        y: cy + r2 * Math.sin(hubAngle)
+      };
+
+      nodes.push(hubNode);
+      topologyNodesMap.set(hubNode.id, hubNode);
+
+      links.push({
+        source: gwNode,
+        target: hubNode,
+        stroke: "rgba(6, 182, 212, 0.45)",
+        isPrimary: false
+      });
+
+      // Distribute Child Devices in Fan around Hub on Ring 3
+      const numDevs = devs.length;
+      const fanSpan = Math.min(Math.PI * 0.55, Math.max(0.3, numDevs * 0.1));
+      devs.forEach((dev, j) => {
+        const brand = getDeviceBrand(dev);
+        const displayName = dev.custom_name || dev.hostname || brand.name || dev.ip;
+        const devAngle = numDevs === 1 ? hubAngle : (hubAngle - fanSpan / 2 + j * (fanSpan / (numDevs - 1)));
+        
+        // Stagger radii if many devices to prevent visual overlap
+        const stagger = (j % 2 === 1 && numDevs > 5) ? 45 : 0;
+        const devR = r3 + stagger;
+
+        const devNode = {
+          id: `dev-${dev.id}`,
+          type: "device",
+          devId: dev.id,
+          dev: dev,
+          label: displayName,
+          sublabel: dev.ip,
+          status: dev.status || "online",
+          radius: 19,
+          brand: brand,
+          iconSvg: brand.svg,
+          accentColor: (dev.status || "online") === "online" ? "#10b981" : "#64748b",
+          x: cx + devR * Math.cos(devAngle),
+          y: cy + devR * Math.sin(devAngle)
+        };
+
+        nodes.push(devNode);
+        topologyNodesMap.set(devNode.id, devNode);
+
+        links.push({
+          source: hubNode,
+          target: devNode,
+          stroke: (dev.status || "online") === "online" ? "rgba(16, 185, 129, 0.35)" : "rgba(100, 116, 139, 0.2)",
+          isPrimary: false
+        });
+      });
+    });
+
+  } else {
+    // -----------------------------------------------------------------
+    // HIERARCHICAL TREE LAYOUT
+    // -----------------------------------------------------------------
+    const totalLeaves = leafDevices.length;
+    const leafRowHeight = 54;
+    const treeHeight = Math.max(height - 40, totalLeaves * leafRowHeight + 80);
+    const startY = 60;
+    const midY = startY + treeHeight / 2;
+
+    const col0_X = 90;   // WAN
+    const col1_X = 260;  // Gateway
+    const col2_X = 450;  // Unraid Host
+    const col3_X = 700;  // Category Hubs
+    const col4_X = 1000; // Device Leaves
+
+    wanNode.x = col0_X;
+    wanNode.y = midY;
+
+    gwNode.x = col1_X;
+    gwNode.y = midY;
+
+    hostNode.x = col2_X;
+    hostNode.y = midY - 90;
+
+    nodes.push(gwNode, wanNode, hostNode);
+    topologyNodesMap.set(gwNode.id, gwNode);
+    topologyNodesMap.set(wanNode.id, wanNode);
+    topologyNodesMap.set(hostNode.id, hostNode);
+
+    links.push({ source: wanNode, target: gwNode, stroke: "url(#link-grad-wan)", isPrimary: true });
+    links.push({ source: gwNode, target: hostNode, stroke: "url(#link-grad-unraid)", isPrimary: true });
+
+    // Stagger leaves and hubs along Y
+    let currentY = startY + 40;
+    catKeys.forEach(catKey => {
+      const catConfig = CATEGORIES[catKey] || CATEGORIES.unknown;
+      const devs = catGroups[catKey];
+      const hubStartY = currentY;
+      const hubCenterY = hubStartY + ((devs.length - 1) * leafRowHeight) / 2;
+
+      const hubNode = {
+        id: `hub-${catKey}`,
+        type: "hub",
+        catKey: catKey,
+        label: catConfig.label,
+        sublabel: `${devs.length} disp.`,
+        status: "online",
+        radius: 22,
+        iconSvg: `<i data-lucide="${catConfig.icon}" class="w-4 h-4 text-cyan-300"></i>`,
+        accentColor: "#06b6d4",
+        x: col3_X,
+        y: hubCenterY
+      };
+
+      nodes.push(hubNode);
+      topologyNodesMap.set(hubNode.id, hubNode);
+
+      links.push({ source: gwNode, target: hubNode, stroke: "rgba(6, 182, 212, 0.45)", isPrimary: false });
+
+      devs.forEach((dev) => {
+        const brand = getDeviceBrand(dev);
+        const displayName = dev.custom_name || dev.hostname || brand.name || dev.ip;
+
+        const devNode = {
+          id: `dev-${dev.id}`,
+          type: "device",
+          devId: dev.id,
+          dev: dev,
+          label: displayName,
+          sublabel: dev.ip,
+          status: dev.status || "online",
+          radius: 18,
+          brand: brand,
+          iconSvg: brand.svg,
+          accentColor: (dev.status || "online") === "online" ? "#10b981" : "#64748b",
+          x: col4_X,
+          y: currentY
+        };
+
+        nodes.push(devNode);
+        topologyNodesMap.set(devNode.id, devNode);
+
+        links.push({
+          source: hubNode,
+          target: devNode,
+          stroke: (dev.status || "online") === "online" ? "rgba(16, 185, 129, 0.35)" : "rgba(100, 116, 139, 0.2)",
+          isPrimary: false
+        });
+
+        currentY += leafRowHeight;
+      });
+
+      currentY += 24; // Category gap
+    });
+  }
+
+  // 5. Generate Links SVG
+  const linksSvg = links.map(link => {
+    let dPath = "";
+    if (state.topology.layout === "tree") {
+      const mx = (link.source.x + link.target.x) / 2;
+      dPath = `M ${link.source.x} ${link.source.y} C ${mx} ${link.source.y}, ${mx} ${link.target.y}, ${link.target.x} ${link.target.y}`;
+    } else {
+      dPath = `M ${link.source.x} ${link.source.y} L ${link.target.x} ${link.target.y}`;
+    }
+
+    const dur = link.isPrimary ? "2.2" : (3.0 + (Math.random() * 1.5)).toFixed(1);
+
+    return `
+      <g class="topology-link-group">
+        <path d="${dPath}" class="topology-link ${link.isPrimary ? 'active' : ''}" style="stroke: ${link.stroke};" />
+        <circle r="2.2" class="topology-particle">
+          <animateMotion dur="${dur}s" repeatCount="indefinite" path="${dPath}" />
+        </circle>
+      </g>
+    `;
+  }).join("");
+
+  // 6. Generate Nodes SVG
+  const nodesSvg = nodes.map(node => {
+    const isOnline = node.status === "online";
+    const statusDotColor = isOnline ? "#10b981" : "#64748b";
+    const ringPulseClass = (node.type === "gateway" || node.type === "host") ? "animate-pulse" : "";
+    const nodeIconSize = node.radius * 1.35;
+    const offset = -nodeIconSize / 2;
+
+    const searchTag = `${node.label} ${node.sublabel} ${(node.dev ? node.dev.mac : '')}`;
+
+    return `
+      <g class="topology-node group" 
+         id="svg-${node.id}"
+         data-id="${node.id}"
+         data-search="${escapeHtml(searchTag)}"
+         transform="translate(${node.x.toFixed(1)}, ${node.y.toFixed(1)})"
+         onmouseenter="showTopologyTooltip(event, '${node.id}')"
+         onmouseleave="hideTopologyTooltip()"
+         onclick="handleTopologyNodeClick('${node.id}')">
+        
+        <!-- Outer Glowing Ring -->
+        <circle r="${node.radius + 3}" fill="none" stroke="${node.accentColor}" stroke-width="1.8" stroke-opacity="0.6" class="${ringPulseClass}" />
+        
+        <!-- Background Dark Circle -->
+        <circle r="${node.radius}" fill="#0a101d" stroke="rgba(255, 255, 255, 0.12)" stroke-width="1.2" />
+
+        <!-- Node Icon Container -->
+        <foreignObject x="${offset.toFixed(1)}" y="${offset.toFixed(1)}" width="${nodeIconSize.toFixed(1)}" height="${nodeIconSize.toFixed(1)}" class="pointer-events-none">
+          <div class="w-full h-full flex items-center justify-center p-0.5">
+            ${node.iconSvg}
+          </div>
+        </foreignObject>
+
+        <!-- Status Dot Indicator -->
+        <circle cx="${(node.radius * 0.72).toFixed(1)}" cy="${(-node.radius * 0.72).toFixed(1)}" r="4.2" fill="${statusDotColor}" stroke="#060911" stroke-width="1.8" />
+
+        <!-- Labels -->
+        <g class="pointer-events-none select-none">
+          <text y="${(node.radius + 14).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="700" fill="#f1f5f9" class="drop-shadow-md">
+            ${escapeHtml(node.label.length > 20 ? node.label.substring(0, 18) + '...' : node.label)}
+          </text>
+          <text y="${(node.radius + 26).toFixed(1)}" text-anchor="middle" font-size="9.5" font-family="monospace" font-weight="500" fill="#94a3b8">
+            ${escapeHtml(node.sublabel)}
+          </text>
+        </g>
+      </g>
+    `;
+  }).join("");
+
+  // 7. Inject into SVG Viewport
+  viewport.innerHTML = `
+    ${orbitRingsSvg}
+    <g id="topology-links-layer">${linksSvg}</g>
+    <g id="topology-nodes-layer">${nodesSvg}</g>
+  `;
+
+  applyTopologyTransform();
+  highlightTopologySearchedNodes();
+
+  if (window.lucide) lucide.createIcons();
+}
+
+function showTopologyTooltip(e, nodeId) {
+  const node = topologyNodesMap.get(nodeId);
+  const tooltip = document.getElementById("topology-tooltip");
+  const wrapper = document.getElementById("topology-wrapper");
+  if (!node || !tooltip || !wrapper) return;
+
+  const isOnline = node.status === "online";
+  const statusBadge = isOnline 
+    ? `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold uppercase"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>Online</span>`
+    : `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 text-[10px] font-semibold uppercase"><span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>Offline</span>`;
+
+  let detailsHtml = "";
+
+  if (node.type === "wan") {
+    detailsHtml = `
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center text-cyan-400 flex-shrink-0">
+          <i data-lucide="globe" class="w-5 h-5"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <span class="font-bold text-white text-xs block truncate">Ligação à Internet (WAN)</span>
+          <span class="text-[11px] text-slate-400 font-mono">Gateway de saída externa</span>
+        </div>
+      </div>
+      <div class="pt-2 border-t border-slate-800 flex items-center justify-between text-[11px]">
+        <span class="text-slate-400">DNS Primário:</span>
+        <span class="font-mono text-cyan-300 font-bold">1.1.1.1</span>
+      </div>
+    `;
+  } else if (node.type === "hub") {
+    detailsHtml = `
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center text-cyan-300 flex-shrink-0">
+          ${node.iconSvg}
+        </div>
+        <div class="min-w-0 flex-1">
+          <span class="font-bold text-white text-xs block truncate">Grupo: ${escapeHtml(node.label)}</span>
+          <span class="text-[11px] text-slate-400">${node.sublabel} conectados</span>
+        </div>
+      </div>
+      <p class="text-[10px] text-slate-400 pt-1">Agrupamento lógico por tipo de dispositivo na rede local.</p>
+    `;
+  } else if (node.dev) {
+    const dev = node.dev;
+    const cat = CATEGORIES[dev.device_type] || CATEGORIES.unknown;
+    detailsHtml = `
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2 min-w-0">
+          <div class="w-7 h-7 rounded-lg bg-slate-800 p-1 flex items-center justify-center flex-shrink-0">
+            ${node.brand ? node.brand.svg : node.iconSvg}
+          </div>
+          <span class="font-bold text-white text-xs truncate">${escapeHtml(node.label)}</span>
+        </div>
+        ${statusBadge}
+      </div>
+      <div class="space-y-1 pt-1.5 border-t border-slate-800 text-[11px]">
+        <div class="flex items-center justify-between">
+          <span class="text-slate-400">Endereço IP:</span>
+          <span class="font-mono text-cyan-300 font-semibold">${dev.ip}</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-slate-400">MAC:</span>
+          <span class="font-mono text-slate-300 text-[10px]">${dev.mac}</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-slate-400">Fabricante:</span>
+          <span class="text-slate-300 truncate max-w-[140px]">${escapeHtml(dev.vendor || 'Desconhecido')}</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-slate-400">Categoria:</span>
+          <span class="text-cyan-400 font-medium">${cat.label}</span>
+        </div>
+      </div>
+      <div class="pt-1 text-[10px] text-cyan-400 flex items-center gap-1 font-semibold">
+        <i data-lucide="mouse-pointer-click" class="w-3 h-3"></i> Clique para gerir e ver detalhes
+      </div>
+    `;
+  }
+
+  tooltip.innerHTML = detailsHtml;
+  tooltip.classList.remove("hidden");
+
+  // Position near cursor
+  const rect = wrapper.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  tooltip.style.left = `${x}px`;
+  tooltip.style.top = `${y}px`;
+
+  if (window.lucide) lucide.createIcons();
+}
+
+function hideTopologyTooltip() {
+  const tooltip = document.getElementById("topology-tooltip");
+  if (tooltip) tooltip.classList.add("hidden");
+}
+
+function handleTopologyNodeClick(nodeId) {
+  const node = topologyNodesMap.get(nodeId);
+  if (!node) return;
+
+  if (node.devId) {
+    openDeviceModal(node.devId);
+  } else if (node.type === "wan") {
+    switchTab("latency");
+  } else if (node.type === "hub") {
+    const sel = document.getElementById("topo-category-filter");
+    if (sel) {
+      sel.value = node.catKey;
+      handleTopologyCategory(node.catKey);
+    }
+  }
 }
 
 
