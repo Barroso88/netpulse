@@ -37,82 +37,84 @@ header {
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* KPI Hero Metric Cards - Distinct Vibrant Executive Themes (Compact -40%) */
+/* KPI Hero Metric Cards - Distinct Vibrant Executive Themes */
 .kpi-card {
   position: relative;
   overflow: hidden;
-  border-radius: 0.875rem !important;
-  box-shadow: 0 4px 14px -3px rgba(0, 0, 0, 0.6);
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: 1rem !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 .kpi-card::before {
   content: '';
   position: absolute;
   top: 0;
-  left: 0.85rem;
-  right: 0.85rem;
-  height: 2px;
-  opacity: 0.95;
+  left: 0;
+  right: 0;
+  height: 2.5px;
+  opacity: 1;
 }
 .kpi-card:hover {
-  transform: translateY(-1.5px) scale(1.005);
-  filter: brightness(1.06);
+  transform: translateY(-2px);
+  filter: brightness(1.04);
 }
 
-/* KPI 1: Dispositivos - Solid Deep Cyan */
+/* KPI 1: Dispositivos - Deep Luminous Cyan with Ambient Backlight */
 .kpi-card-devices {
-  background: linear-gradient(135deg, #0e4e63 0%, #083344 100%) !important;
-  border: 1.5px solid #06b6d4 !important;
-  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.65), 0 0 16px -4px rgba(6, 182, 212, 0.45);
+  background: linear-gradient(145deg, rgba(8, 51, 68, 0.95) 0%, rgba(4, 27, 36, 0.98) 100%) !important;
+  border: 1.5px solid rgba(6, 182, 212, 0.6) !important;
+  box-shadow: 0 10px 30px -4px rgba(0, 0, 0, 0.8), 0 0 24px -2px rgba(6, 182, 212, 0.35) !important;
 }
 .kpi-card-devices::before {
-  background: linear-gradient(90deg, transparent, #22d3ee, transparent);
+  background: linear-gradient(90deg, transparent, #22d3ee, #67e8f9, transparent);
 }
 .kpi-card-devices:hover {
-  border-color: #67e8f9 !important;
-  box-shadow: 0 14px 32px -4px rgba(0, 0, 0, 0.75), 0 0 24px -2px rgba(6, 182, 212, 0.65);
+  border-color: #38bdf8 !important;
+  box-shadow: 0 16px 40px -4px rgba(0, 0, 0, 0.85), 0 0 32px 0px rgba(6, 182, 212, 0.55) !important;
 }
 
 /* KPI 2: Latência Router - Solid Electric Cobalt Blue */
 .kpi-card-router {
-  background: linear-gradient(135deg, #1e3a8a 0%, #172554 100%) !important;
-  border: 1.5px solid #3b82f6 !important;
-  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.65), 0 0 16px -4px rgba(59, 130, 246, 0.45);
+  background: linear-gradient(145deg, rgba(23, 37, 84, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%) !important;
+  border: 1.5px solid rgba(59, 130, 246, 0.6) !important;
+  box-shadow: 0 10px 30px -4px rgba(0, 0, 0, 0.8), 0 0 24px -2px rgba(59, 130, 246, 0.35) !important;
 }
 .kpi-card-router::before {
-  background: linear-gradient(90deg, transparent, #60a5fa, transparent);
+  background: linear-gradient(90deg, transparent, #60a5fa, #93c5fd, transparent);
 }
 .kpi-card-router:hover {
-  border-color: #93c5fd !important;
-  box-shadow: 0 14px 32px -4px rgba(0, 0, 0, 0.75), 0 0 24px -2px rgba(59, 130, 246, 0.65);
+  border-color: #60a5fa !important;
+  box-shadow: 0 16px 40px -4px rgba(0, 0, 0, 0.85), 0 0 32px 0px rgba(59, 130, 246, 0.55) !important;
 }
 
 /* KPI 3: Internet (WAN) - Solid Emerald Forest Green */
 .kpi-card-wan {
-  background: linear-gradient(135deg, #064e3b 0%, #022c22 100%) !important;
-  border: 1.5px solid #10b981 !important;
-  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.65), 0 0 16px -4px rgba(16, 185, 129, 0.45);
+  background: linear-gradient(145deg, rgba(2, 44, 34, 0.95) 0%, rgba(4, 25, 20, 0.98) 100%) !important;
+  border: 1.5px solid rgba(16, 185, 129, 0.6) !important;
+  box-shadow: 0 10px 30px -4px rgba(0, 0, 0, 0.8), 0 0 24px -2px rgba(16, 185, 129, 0.35) !important;
 }
 .kpi-card-wan::before {
-  background: linear-gradient(90deg, transparent, #34d399, transparent);
+  background: linear-gradient(90deg, transparent, #34d399, #6ee7b7, transparent);
 }
 .kpi-card-wan:hover {
-  border-color: #6ee7b7 !important;
-  box-shadow: 0 14px 32px -4px rgba(0, 0, 0, 0.75), 0 0 24px -2px rgba(16, 185, 129, 0.65);
+  border-color: #34d399 !important;
+  box-shadow: 0 16px 40px -4px rgba(0, 0, 0, 0.85), 0 0 32px 0px rgba(16, 185, 129, 0.55) !important;
 }
 
 /* KPI 4: Velocidade - Solid Royal Violet Purple */
 .kpi-card-speed {
-  background: linear-gradient(135deg, #581c87 0%, #3b0764 100%) !important;
-  border: 1.5px solid #a855f7 !important;
-  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.65), 0 0 16px -4px rgba(168, 85, 247, 0.45);
+  background: linear-gradient(145deg, rgba(59, 7, 100, 0.95) 0%, rgba(30, 4, 52, 0.98) 100%) !important;
+  border: 1.5px solid rgba(168, 85, 247, 0.6) !important;
+  box-shadow: 0 10px 30px -4px rgba(0, 0, 0, 0.8), 0 0 24px -2px rgba(168, 85, 247, 0.35) !important;
 }
 .kpi-card-speed::before {
-  background: linear-gradient(90deg, transparent, #c084fc, transparent);
+  background: linear-gradient(90deg, transparent, #c084fc, #e9d5ff, transparent);
 }
 .kpi-card-speed:hover {
-  border-color: #d8b4fe !important;
-  box-shadow: 0 14px 32px -4px rgba(0, 0, 0, 0.75), 0 0 24px -2px rgba(168, 85, 247, 0.65);
+  border-color: #c084fc !important;
+  box-shadow: 0 16px 40px -4px rgba(0, 0, 0, 0.85), 0 0 32px 0px rgba(168, 85, 247, 0.55) !important;
 }
 
 /* Navigation Tab Buttons - High-End Executive Styling */

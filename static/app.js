@@ -620,6 +620,15 @@ function renderKPIs() {
   const tabCount = document.getElementById("tab-count-devices");
   if (tabCount) tabCount.textContent = total;
 
+  // Visual Online / Offline Ratio Bar
+  const barOnline = document.getElementById("kpi-devices-bar-online");
+  const barOffline = document.getElementById("kpi-devices-bar-offline");
+  if (barOnline && total > 0) {
+    const pct = Math.min(100, Math.max(0, Math.round((onlineCount / total) * 100)));
+    barOnline.style.width = `${pct}%`;
+    if (barOffline) barOffline.style.width = `${100 - pct}%`;
+  }
+
   updateStatusFilterButtons();
 }
 
