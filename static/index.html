@@ -48,7 +48,7 @@
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <link rel="stylesheet" href="/styles.css?v=9.0">
+  <link rel="stylesheet" href="/styles.css?v=9.1">
 </head>
 <body class="bg-darkbg text-slate-100 min-h-screen font-sans antialiased selection:bg-cyan-500 selection:text-black">
 
@@ -233,40 +233,40 @@
         <!-- Tab 1: Devices -->
         <button id="tab-btn-devices" onclick="switchTab('devices')" class="tab-btn active flex items-center gap-2.5 px-4 py-2.5 rounded-xl font-bold text-xs transition">
           <i data-lucide="list" class="w-4 h-4 text-cyan-400"></i>
-          <span>Inventário de Dispositivos</span>
+          <span>Dispositivos</span>
           <span id="tab-count-devices" class="tab-badge px-2 py-0.5 rounded-lg bg-slate-950/60 border border-cyan-500/30 text-[11px] font-mono font-bold text-cyan-300">0</span>
         </button>
 
-        <!-- Tab 2: Topology Map -->
-        <button id="tab-btn-topology" onclick="switchTab('topology')" class="tab-btn flex items-center gap-2.5 px-4 py-2.5 rounded-xl font-bold text-xs transition" title="Ver Topologia Visual da Rede">
+        <!-- Tab 2: Topology / Network Map -->
+        <button id="tab-btn-topology" onclick="switchTab('topology')" class="tab-btn flex items-center gap-2.5 px-4 py-2.5 rounded-xl font-bold text-xs transition" title="Ver Mapa de Rede">
           <i data-lucide="network" class="w-4 h-4 text-emerald-400"></i>
-          <span>Mapa de Topologia</span>
+          <span>Mapa de Rede</span>
           <span class="tab-badge px-2 py-0.5 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-[10px] font-mono font-bold text-emerald-300">NOVO</span>
         </button>
 
         <!-- Tab 3: Latency -->
         <button id="tab-btn-latency" onclick="switchTab('latency')" class="tab-btn flex items-center gap-2.5 px-4 py-2.5 rounded-xl font-bold text-xs transition">
           <i data-lucide="activity" class="w-4 h-4 text-blue-400"></i>
-          <span>Radar de Latência</span>
+          <span>Latência</span>
         </button>
 
-        <!-- Tab 3: Speedtest -->
+        <!-- Tab 4: Speedtest -->
         <button id="tab-btn-speedtest" onclick="switchTab('speedtest')" class="tab-btn flex items-center gap-2.5 px-4 py-2.5 rounded-xl font-bold text-xs transition">
           <i data-lucide="gauge" class="w-4 h-4 text-purple-400"></i>
-          <span>Teste de Velocidade</span>
+          <span>Velocidade</span>
         </button>
 
-        <!-- Tab 4: Security & Alerts -->
+        <!-- Tab 5: Security & Alerts -->
         <button id="tab-btn-alerts" onclick="switchTab('alerts')" class="tab-btn flex items-center gap-2.5 px-4 py-2.5 rounded-xl font-bold text-xs transition">
           <i data-lucide="shield-alert" class="w-4 h-4 text-amber-400"></i>
           <span>Segurança & Alertas</span>
           <span id="tab-count-alerts" class="hidden tab-badge px-2 py-0.5 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[11px] font-mono font-bold">0</span>
         </button>
 
-        <!-- Tab 5: Autonomous Agents -->
+        <!-- Tab 6: AI Autonomous Agents -->
         <button id="tab-btn-agents" onclick="switchTab('agents')" class="tab-btn flex items-center gap-2.5 px-4 py-2.5 rounded-xl font-bold text-xs transition">
           <i data-lucide="bot" class="w-4 h-4 text-emerald-400"></i>
-          <span>Agentes Autónomos</span>
+          <span>Agentes AI</span>
           <span id="tab-badge-agents" class="tab-badge px-2 py-0.5 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[11px] font-mono font-bold flex items-center gap-1.5">
             <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
             5 ATIVOS
@@ -274,12 +274,8 @@
         </button>
       </div>
 
-      <!-- Quick refresh / Auto-refresh Capsule -->
-      <div class="flex items-center gap-2 pl-2 border-l border-slate-800 shrink-0">
-        <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950/80 border border-slate-800 text-slate-300 font-mono text-xs shadow-inner">
-          <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span id="last-updated-text" class="hidden md:inline font-semibold">Atualizado: agora</span>
-        </div>
+      <!-- Quick refresh button -->
+      <div class="flex items-center pl-2 border-l border-slate-800 shrink-0">
         <button onclick="fetchDevices()" title="Recarregar Inventário" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 hover:text-cyan-400 text-slate-300 border border-slate-700/80 shadow-md transition active:scale-95">
           <i data-lucide="refresh-cw" class="w-4 h-4"></i>
         </button>
@@ -1059,25 +1055,25 @@
   <!-- MOBILE BOTTOM NAVIGATION BAR (THUMB ERGONOMICS)                          -->
   <!-- ========================================================================= -->
   <nav id="mobile-bottom-nav" class="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/90 backdrop-blur-2xl border-t border-white/10 px-2 py-1.5 flex justify-around items-center pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-2xl">
-    <button onclick="switchTab('devices')" class="mobile-nav-btn active flex flex-col items-center gap-0.5 py-1 px-2 rounded-xl text-[10px] font-semibold text-cyan-400 transition" id="m-tab-devices">
+    <button onclick="switchTab('devices')" class="mobile-nav-btn active flex flex-col items-center gap-0.5 py-1 px-1.5 rounded-xl text-[10px] font-semibold text-cyan-400 transition" id="m-tab-devices">
       <i data-lucide="list" class="w-5 h-5"></i>
-      <span>Aparelhos</span>
+      <span>Dispositivos</span>
     </button>
-    <button onclick="switchTab('topology')" class="mobile-nav-btn flex flex-col items-center gap-0.5 py-1 px-2 rounded-xl text-[10px] font-semibold text-slate-400 transition" id="m-tab-topology">
+    <button onclick="switchTab('topology')" class="mobile-nav-btn flex flex-col items-center gap-0.5 py-1 px-1.5 rounded-xl text-[10px] font-semibold text-slate-400 transition" id="m-tab-topology">
       <i data-lucide="network" class="w-5 h-5"></i>
-      <span>Topologia</span>
+      <span>Mapa</span>
     </button>
-    <button onclick="switchTab('latency')" class="mobile-nav-btn flex flex-col items-center gap-0.5 py-1 px-2 rounded-xl text-[10px] font-semibold text-slate-400 transition" id="m-tab-latency">
+    <button onclick="switchTab('latency')" class="mobile-nav-btn flex flex-col items-center gap-0.5 py-1 px-1.5 rounded-xl text-[10px] font-semibold text-slate-400 transition" id="m-tab-latency">
       <i data-lucide="activity" class="w-5 h-5"></i>
       <span>Latência</span>
     </button>
-    <button onclick="switchTab('speedtest')" class="mobile-nav-btn flex flex-col items-center gap-0.5 py-1 px-2 rounded-xl text-[10px] font-semibold text-slate-400 transition" id="m-tab-speedtest">
+    <button onclick="switchTab('speedtest')" class="mobile-nav-btn flex flex-col items-center gap-0.5 py-1 px-1.5 rounded-xl text-[10px] font-semibold text-slate-400 transition" id="m-tab-speedtest">
       <i data-lucide="zap" class="w-5 h-5"></i>
-      <span>Speedtest</span>
+      <span>Velocidade</span>
     </button>
-    <button onclick="switchTab('agents')" class="mobile-nav-btn flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl text-[10px] font-semibold text-slate-400 transition" id="m-tab-agents">
+    <button onclick="switchTab('agents')" class="mobile-nav-btn flex flex-col items-center gap-0.5 py-1 px-1.5 rounded-xl text-[10px] font-semibold text-slate-400 transition" id="m-tab-agents">
       <i data-lucide="bot" class="w-5 h-5"></i>
-      <span>Agentes</span>
+      <span>Agentes AI</span>
     </button>
     <button onclick="openAlertsDrawer()" class="mobile-nav-btn relative flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl text-[10px] font-semibold text-slate-400 transition" id="m-tab-alerts">
       <i data-lucide="bell" class="w-5 h-5"></i>
@@ -1089,6 +1085,6 @@
   <!-- Toast Notification Container -->
   <div id="toast-container" class="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 left-4 sm:left-auto z-50 flex flex-col gap-2 pointer-events-none"></div>
 
-  <script src="/app.js?v=9.0"></script>
+  <script src="/app.js?v=9.1"></script>
 </body>
 </html>
