@@ -48,7 +48,7 @@
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <link rel="stylesheet" href="/styles.css?v=9.5">
+  <link rel="stylesheet" href="/styles.css?v=9.6">
 </head>
 <body class="bg-darkbg text-slate-100 min-h-screen font-sans antialiased selection:bg-cyan-500 selection:text-black">
 
@@ -60,31 +60,17 @@
     
     <!-- Sidebar Top: Brand & Network Header -->
     <div class="sidebar-header-box p-3 xl:p-4 border-b border-white/5 space-y-3">
-      <div class="flex items-center justify-between">
-        <div class="sidebar-brand-wrapper flex items-center gap-2.5 overflow-hidden min-w-0">
-          <div class="relative flex items-center justify-center w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-600 shadow-lg shadow-cyan-500/25 text-white font-black flex-shrink-0">
-            <i data-lucide="activity" class="w-4 h-4"></i>
-            <span class="absolute -top-0.5 -right-0.5 flex h-2 w-2">
-              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-          </div>
-          <div class="sidebar-text truncate">
-            <div class="flex items-center gap-1.5">
-              <span class="font-extrabold text-base tracking-tight bg-gradient-to-r from-white via-slate-100 to-cyan-300 bg-clip-text text-transparent">NetPulse</span>
-              <span class="text-[9px] uppercase font-bold tracking-widest px-1.5 py-0.2 rounded-full bg-cyan-950/80 text-cyan-400 border border-cyan-800/60">Pro</span>
-            </div>
-            <p class="text-[10px] text-slate-400 font-mono flex items-center gap-1 mt-0.5">
-              <span id="header-subnet">192.168.1.0/24</span>
-              <span class="inline-block w-1 h-1 rounded-full bg-slate-600"></span>
-              <span id="header-iface" class="text-cyan-400">en0</span>
-            </p>
-          </div>
-        </div>
-        <!-- Single Desktop/Mobile Collapse Toggle Button -->
-        <button id="btn-sidebar-collapse" onclick="toggleSidebar()" class="p-2 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-cyan-400 border border-slate-800 transition active:scale-95 flex-shrink-0" title="Recolher / Expandir Barra Lateral">
+      <div class="flex items-center gap-3">
+        <!-- Hamburger Collapse / Expand Button on the Left -->
+        <button id="btn-sidebar-collapse" onclick="toggleSidebar()" class="w-9 h-9 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-cyan-400 border border-slate-800 flex items-center justify-center transition active:scale-95 flex-shrink-0 shadow-sm" title="Recolher / Expandir Barra Lateral">
           <i data-lucide="menu" class="w-4 h-4"></i>
         </button>
+
+        <!-- Brand Name & Badge (Hidden when collapsed) -->
+        <div class="sidebar-text flex items-center gap-1.5 truncate">
+          <span class="font-extrabold text-base tracking-tight bg-gradient-to-r from-white via-slate-100 to-cyan-300 bg-clip-text text-transparent">NetPulse</span>
+          <span class="text-[9px] uppercase font-bold tracking-widest px-1.5 py-0.2 rounded-full bg-cyan-950/80 text-cyan-400 border border-cyan-800/60">Pro</span>
+        </div>
       </div>
 
       <!-- Quick Scan Hero Button in Sidebar -->
@@ -1144,6 +1130,6 @@
   <!-- Toast Notification Container -->
   <div id="toast-container" class="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 left-4 sm:left-auto z-50 flex flex-col gap-2 pointer-events-none"></div>
 
-  <script src="/app.js?v=9.5"></script>
+  <script src="/app.js?v=9.6"></script>
 </body>
 </html>
