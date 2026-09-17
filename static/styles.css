@@ -203,42 +203,119 @@ header {
   color: #ffffff !important;
 }
 
-/* Sidebar Desktop Collapse & Responsive Transitions */
+/* ========================================================================= */
+/* SIDEBAR COLLAPSIBLE: EXPANDED vs MINI ICON-RAIL (DESKTOP)                 */
+/* ========================================================================= */
 #app-sidebar {
-  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: width 0.28s cubic-bezier(0.16, 1, 0.3, 1), transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
 }
 #top-header,
 #main-content {
   transition: padding-left 0.28s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-body.sidebar-collapsed #app-sidebar {
-  transform: translateX(-100%) !important;
-}
-body.sidebar-collapsed #top-header {
-  padding-left: 1rem !important;
-}
-@media (min-width: 640px) {
-  body.sidebar-collapsed #top-header {
-    padding-left: 1.5rem !important;
-  }
-}
+/* Default Expanded Widths */
 @media (min-width: 1024px) {
-  body.sidebar-collapsed #top-header {
-    padding-left: 2rem !important;
+  #app-sidebar {
+    width: 16rem; /* 256px */
   }
 }
-body.sidebar-collapsed #main-content {
-  padding-left: 0.75rem !important;
-}
-@media (min-width: 640px) {
-  body.sidebar-collapsed #main-content {
-    padding-left: 1.5rem !important;
+@media (min-width: 1280px) {
+  #app-sidebar {
+    width: 18rem; /* 288px */
   }
 }
+
+/* Collapsed Mini Icon-Rail on Desktop (>= 1024px) */
 @media (min-width: 1024px) {
+  body.sidebar-collapsed #app-sidebar {
+    width: 4.5rem !important; /* 72px */
+    transform: translateX(0) !important;
+  }
+  body.sidebar-collapsed #top-header {
+    padding-left: 4.5rem !important;
+  }
   body.sidebar-collapsed #main-content {
-    padding-left: 2rem !important;
+    padding-left: 4.5rem !important;
+  }
+
+  /* Disappear only titles, texts and badges */
+  body.sidebar-collapsed .sidebar-text {
+    display: none !important;
+  }
+
+  /* Show subtle divider when section titles disappear */
+  body.sidebar-collapsed .sidebar-divider {
+    display: block !important;
+  }
+
+  /* Header compact centering */
+  body.sidebar-collapsed .sidebar-header-box {
+    padding: 0.75rem 0.35rem !important;
+  }
+  body.sidebar-collapsed .sidebar-header-box > div {
+    flex-direction: column !important;
+    gap: 0.6rem !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+  body.sidebar-collapsed #btn-sidebar-collapse {
+    margin: 0 auto !important;
+    width: 2.25rem !important;
+    height: 2.25rem !important;
+  }
+
+  /* Quick action button becomes centered square icon */
+  body.sidebar-collapsed .sidebar-action-btn {
+    width: 2.5rem !important;
+    height: 2.5rem !important;
+    padding: 0 !important;
+    margin: 0 auto !important;
+    border-radius: 0.75rem !important;
+  }
+
+  /* Tab buttons remain as centered icon rail items */
+  body.sidebar-collapsed .sidebar-tab-btn {
+    justify-content: center !important;
+    padding: 0.55rem 0 !important;
+    width: 2.75rem !important;
+    height: 2.75rem !important;
+    margin: 0.25rem auto !important;
+    border-radius: 0.75rem !important;
+  }
+  body.sidebar-collapsed .sidebar-tab-btn > div {
+    justify-content: center !important;
+    gap: 0 !important;
+  }
+  body.sidebar-collapsed .sidebar-tab-btn i {
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+  }
+  body.sidebar-collapsed .sidebar-tab-btn.active {
+    background: rgba(6, 182, 212, 0.16) !important;
+    border: 1.5px solid rgba(6, 182, 212, 0.5) !important;
+    box-shadow: 0 0 16px rgba(6, 182, 212, 0.35) !important;
+  }
+
+  /* Show mini indicator dot on icon when collapsed */
+  body.sidebar-collapsed .sidebar-mini-dot {
+    display: block !important;
+  }
+
+  /* Footer compact centering */
+  body.sidebar-collapsed #sidebar-footer {
+    padding: 0.75rem 0.25rem !important;
+  }
+  body.sidebar-collapsed #sidebar-footer > div:last-child {
+    justify-content: center !important;
+  }
+  body.sidebar-collapsed #btn-sidebar-refresh {
+    margin: 0 auto !important;
+    width: 2.5rem !important;
+    height: 2.5rem !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
   }
 }
 

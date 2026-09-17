@@ -1523,6 +1523,10 @@ async function fetchAlerts() {
       tabCount.textContent = unread;
       tabCount.classList.toggle("hidden", unread === 0);
     }
+    const dot = document.getElementById("tab-dot-alerts");
+    if (dot) {
+      dot.classList.toggle("hidden", unread === 0);
+    }
     const mBadge = document.getElementById("m-alerts-badge");
     if (mBadge) {
       mBadge.classList.toggle("hidden", unread === 0);
