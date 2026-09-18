@@ -343,7 +343,10 @@ class AgentsEngine:
                 reason = "Home Assistant em ambiente virtualizado detetado"
 
             if should_update:
-                new_type = classify_device(ip, mac, d.get("hostname", ""), new_vendor, custom_name=name)
+                if d.get("is_custom_type") == 1:
+                    new_type = curr_type
+                else:
+                    new_type = classify_device(ip, mac, d.get("hostname", ""), new_vendor, custom_name=name)
                 
                 # Update DB
                 conn = database.get_db_connection()

@@ -991,8 +991,34 @@ def classify_device(ip: str, mac: str, hostname: str, vendor: str, open_ports: l
     combined = f"{h_lower} {v_lower} {n_lower}"
     open_ports = open_ports or []
 
-    # 1. Router / Gateway & Network Infrastructure
-    if is_gateway or ip.endswith(".1") or "router" in combined or "gateway" in combined or "altice" in v_lower or "sagemcom" in v_lower or "arcadyan" in v_lower or "tp-link" in v_lower or "ubiquiti" in v_lower or "netgear" in v_lower or "asus" in v_lower or "mikrotik" in v_lower or "fritz!box" in v_lower or "draytek" in v_lower or "cisco" in v_lower or "linksys" in v_lower or "d-link" in v_lower or "technicolor" in v_lower or "vantiva" in v_lower:
+    # 1. Network Gateway (Actual Primary Router)
+    if is_gateway or (ip.endswith(".1") and not ("tapo" in combined or "camera" in combined or "cam" in combined or "câmara" in combined)):
+        return "router"
+
+    # 2. Cameras, Smart Home & IoT (Tapo, Kasa, Tuya, Reolink, RTSP/ONVIF, Smart Plugs, Sensors, Alexa, Home Assistant)
+    # MUST take precedence over vendor names like TP-Link, Xiaomi, etc. (TP-Link manufactures both routers and Tapo cameras/plugs!)
+    is_smart_home_or_cam = (
+        "tapo" in combined or "kasa" in combined or "camera" in combined or "câmera" in combined or
+        "câmara" in combined or "cam" in combined or "webcam" in combined or "ipcam" in combined or
+        "reolink" in combined or "eufy" in combined or "ezviz" in combined or "hikvision" in combined or
+        "dahua" in combined or "imou" in combined or "amcrest" in combined or "doorbell" in combined or
+        "campainha" in combined or "intercom" in combined or "tomada" in combined or "smart plug" in combined or
+        "plug" in combined or "lâmpada" in combined or "lampada" in combined or "bulb" in combined or
+        "sensor" in combined or "home assistant" in combined or "hass" in combined or "aspirador" in combined or
+        "vacuum" in combined or "robot" in combined or "amazon" in v_lower or "alexa" in combined or
+        "echo" in combined or "espressif" in v_lower or "iot" in combined or "smarthome" in combined or
+        "smart home" in combined or "domotica" in combined or "domótica" in combined or "hue" in combined or
+        "philips lighting" in v_lower or "shelly" in combined or "allterco" in v_lower or
+        "tasmota" in combined or "sonoff" in combined or "tuya" in combined or "ikea" in combined or
+        "aqara" in combined or "ring" in combined or "blink" in combined or "wyze" in combined or
+        "tado" in combined or "netatmo" in combined or "withings" in combined or
+        1883 in open_ports or 8123 in open_ports or 554 in open_ports or 2020 in open_ports or 8554 in open_ports
+    )
+    if is_smart_home_or_cam:
+        return "iot"
+
+    # 3. Router / Gateway & Network Infrastructure (Switches, Access Points, Repeaters)
+    if "router" in combined or "gateway" in combined or "access point" in combined or "switch" in combined or "deco" in combined or "altice" in v_lower or "sagemcom" in v_lower or "arcadyan" in v_lower or "tp-link" in v_lower or "ubiquiti" in v_lower or "netgear" in v_lower or "asus" in v_lower or "mikrotik" in v_lower or "fritz!box" in v_lower or "draytek" in v_lower or "cisco" in v_lower or "linksys" in v_lower or "d-link" in v_lower or "technicolor" in v_lower or "vantiva" in v_lower:
         return "router"
 
     # 2. Gaming Consoles

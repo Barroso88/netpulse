@@ -117,7 +117,8 @@ def init_db():
         first_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         open_ports TEXT DEFAULT '[]',
-        notes TEXT DEFAULT ''
+        notes TEXT DEFAULT '',
+        is_custom_type INTEGER DEFAULT 0
     );
     """)
 
@@ -209,6 +210,13 @@ def init_db():
 
     conn.commit()
 
+    # Migration: Add is_custom_type column if missing
+    try:
+        cursor.execute("ALTER TABLE devices ADD COLUMN is_custom_type INTEGER DEFAULT 0")
+        conn.commit()
+    except Exception:
+        pass
+
     # If connected to PostgreSQL, migrate any existing SQLite data
     if conn.is_pg:
         migrate_sqlite_to_postgres(DB_PATH, conn)
@@ -222,6 +230,7 @@ def cleanup_and_realign_devices(conn):
     """
     1. Removes any virtual Docker container entries (172.x, 02:42:x).
     2. Recalculates vendors and categories using the latest OUI dictionary (fixes Formuler / Aloys etc).
+    3. Respects user manual overrides (is_custom_type = 1).
     """
     try:
         from oui_database import lookup_vendor, classify_device
@@ -232,12 +241,13 @@ def cleanup_and_realign_devices(conn):
         cursor.execute("DELETE FROM alerts WHERE device_ip LIKE '172.%' OR device_mac LIKE '02:42:%'")
 
         # 2. Re-align vendor & classification for all devices with self-healing conflict resolution
-        cursor.execute("SELECT id, ip, mac, hostname, custom_name, vendor, device_type FROM devices")
+        cursor.execute("SELECT id, ip, mac, hostname, custom_name, vendor, device_type, is_custom_type FROM devices")
         all_devs = cursor.fetchall()
         for d in all_devs:
             mac = d["mac"]
             curr_vendor = d["vendor"] or ""
             curr_type = d["device_type"]
+            is_custom = d["is_custom_type"] if ("is_custom_type" in d.keys() and d["is_custom_type"] is not None) else 0
             name = (d["custom_name"] or "").strip()
             name_lower = name.lower()
             vendor_lower = curr_vendor.lower()
@@ -245,7 +255,12 @@ def cleanup_and_realign_devices(conn):
             expected_vendor = lookup_vendor(mac)
             should_update = False
             new_vendor = curr_vendor
-            new_type = curr_type
+
+            # If user explicitly customized this category, NEVER overwrite it!
+            if is_custom == 1:
+                target_type = curr_type
+            else:
+                target_type = classify_device(d["ip"], mac, d["hostname"], new_vendor, custom_name=name)
 
             if expected_vendor and expected_vendor not in ("Desconhecido", "Broadcast") and expected_vendor != curr_vendor:
                 should_update = True
@@ -270,13 +285,11 @@ def cleanup_and_realign_devices(conn):
                 if not curr_vendor or curr_vendor == "Desconhecido":
                     new_vendor = "Micro-Star INTL (MSI)"
 
-            # Recalculate target device type
-            target_type = classify_device(d["ip"], mac, d["hostname"], new_vendor, custom_name=name)
-
-            if should_update or target_type != curr_type:
+            if should_update or (is_custom != 1 and target_type != curr_type):
+                final_type = curr_type if is_custom == 1 else target_type
                 cursor.execute(
                     "UPDATE devices SET vendor = ?, device_type = ? WHERE id = ?",
-                    (new_vendor, target_type, d["id"])
+                    (new_vendor, final_type, d["id"])
                 )
         conn.commit()
     except Exception as e:
@@ -396,8 +409,14 @@ def upsert_device(ip, mac, hostname, vendor, device_type="unknown"):
         new_hostname = hostname if (hostname and hostname != "?") else existing["hostname"]
         new_vendor = vendor if (vendor and vendor != "Desconhecido") else existing["vendor"]
         curr_type = existing["device_type"]
-        if curr_type == "unknown" and device_type != "unknown":
-            curr_type = device_type
+        is_custom = existing["is_custom_type"] if ("is_custom_type" in existing.keys() and existing["is_custom_type"] is not None) else 0
+
+        # Preserve user custom category; if not custom, heal unknown or erroneously classified devices
+        if is_custom != 1:
+            if curr_type == "unknown" and device_type != "unknown":
+                curr_type = device_type
+            elif curr_type == "router" and device_type == "iot":
+                curr_type = "iot"
 
         cursor.execute("""
             UPDATE devices 
@@ -448,6 +467,8 @@ def update_device_details(device_id, custom_name=None, device_type=None, is_trus
     if device_type is not None:
         fields.append("device_type = ?")
         values.append(device_type)
+        fields.append("is_custom_type = ?")
+        values.append(1)
     if is_trusted is not None:
         fields.append("is_trusted = ?")
         values.append(1 if is_trusted else 0)
