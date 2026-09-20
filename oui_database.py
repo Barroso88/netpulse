@@ -38,6 +38,11 @@ KNOWN_OUIS = {
     "E8:AA:CB": "Samsung Electronics",
     "60:74:F4": "Samsung Electronics",
     "E8:50:8B": "Samsung Electronics",
+    "DC:8E:95": "Woan Technology (SwitchBot)",
+    "A4:C1:38": "Woan Technology (SwitchBot)",
+    "F4:CF:A2": "Woan Technology (SwitchBot)",
+    "74:4D:BD": "Woan Technology (SwitchBot)",
+    "8C:85:80": "Woan Technology (SwitchBot)",
 
     # =========================================================================
     # 1. SMART HOME & IOT
@@ -995,9 +1000,10 @@ def classify_device(ip: str, mac: str, hostname: str, vendor: str, open_ports: l
     if is_gateway or (ip.endswith(".1") and not ("tapo" in combined or "camera" in combined or "cam" in combined or "câmara" in combined)):
         return "router"
 
-    # 2. Cameras, Smart Home & IoT (Tapo, Kasa, Tuya, Reolink, RTSP/ONVIF, Smart Plugs, Sensors, Alexa, Home Assistant)
+    # 2. Cameras, Smart Home & IoT (Tapo, Kasa, Tuya, Reolink, RTSP/ONVIF, Smart Plugs, Sensors, Alexa, Home Assistant, SwitchBot)
     # MUST take precedence over vendor names like TP-Link, Xiaomi, etc. (TP-Link manufactures both routers and Tapo cameras/plugs!)
     is_smart_home_or_cam = (
+        "switchbot" in combined or "switch-bot" in combined or "woan" in v_lower or
         "tapo" in combined or "kasa" in combined or "camera" in combined or "câmera" in combined or
         "câmara" in combined or "cam" in combined or "webcam" in combined or "ipcam" in combined or
         "reolink" in combined or "eufy" in combined or "ezviz" in combined or "hikvision" in combined or
@@ -1022,7 +1028,7 @@ def classify_device(ip: str, mac: str, hostname: str, vendor: str, open_ports: l
         return "router"
 
     # 2. Gaming Consoles
-    if "playstation" in combined or "xbox" in combined or "nintendo" in combined or "steam deck" in combined or "switch" in combined:
+    if "playstation" in combined or "xbox" in combined or "nintendo" in combined or "steam deck" in combined or "nintendo switch" in combined or "switch oled" in combined:
         return "gaming"
 
     # 3. Printers
