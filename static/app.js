@@ -1408,17 +1408,32 @@ async function saveDeviceModalDetails() {
   const connection_type = document.getElementById("m-dev-input-connection") ? document.getElementById("m-dev-input-connection").value : "auto";
   const notes = document.getElementById("m-dev-input-notes").value.trim();
 
+  // Optimistic local state update so UI and modal reflect immediately
+  const dev = state.devices.find(d => String(d.id) === String(id));
+  if (dev) {
+    if (custom_name) dev.custom_name = custom_name;
+    dev.device_type = device_type;
+    dev.connection_type = connection_type;
+    dev.notes = notes;
+  }
+
   try {
-    await fetch(`/api/devices/${id}/edit`, {
+    const res = await fetch(`/api/devices/${id}/edit`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ custom_name, device_type, connection_type, notes })
     });
+    const data = await res.json();
+    if (!res.ok || data.error) {
+      showToast(data.error || "Erro ao gravar alterações", "error");
+      return;
+    }
     closeDeviceModal();
     showToast("Detalhes do dispositivo guardados com sucesso", "success");
-    fetchDevices();
+    state._devicesSignature = null;
+    await fetchDevices(false);
   } catch (err) {
-    showToast("Erro ao gravar alterações", "error");
+    showToast("Erro ao gravar alterações: " + err, "error");
   }
 }
 
@@ -1438,16 +1453,31 @@ async function saveDeviceDetails() {
   const connection_type = document.getElementById("edit-connection-type") ? document.getElementById("edit-connection-type").value : "auto";
   const notes = document.getElementById("edit-device-notes").value.trim();
 
+  const dev = state.devices.find(d => String(d.id) === String(id));
+  if (dev) {
+    if (custom_name) dev.custom_name = custom_name;
+    dev.device_type = device_type;
+    dev.connection_type = connection_type;
+    dev.notes = notes;
+  }
+
   try {
-    await fetch(`/api/devices/${id}/edit`, {
+    const res = await fetch(`/api/devices/${id}/edit`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ custom_name, device_type, connection_type, notes })
     });
+    const data = await res.json();
+    if (!res.ok || data.error) {
+      showToast(data.error || "Erro ao gravar alterações", "error");
+      return;
+    }
     closeEditModal();
-    fetchDevices();
+    showToast("Detalhes do dispositivo guardados com sucesso", "success");
+    state._devicesSignature = null;
+    await fetchDevices(false);
   } catch (err) {
-    alert("Erro ao gravar alterações: " + err);
+    showToast("Erro ao gravar alterações: " + err, "error");
   }
 }
 

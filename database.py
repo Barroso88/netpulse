@@ -211,19 +211,37 @@ def init_db():
 
     conn.commit()
 
-    # Migration: Add is_custom_type column if missing
-    try:
-        cursor.execute("ALTER TABLE devices ADD COLUMN is_custom_type INTEGER DEFAULT 0")
-        conn.commit()
-    except Exception:
-        pass
+    # Migration: Add columns if missing (handled safely for PostgreSQL and SQLite)
+    if conn.is_pg:
+        try:
+            cursor.execute("ALTER TABLE devices ADD COLUMN IF NOT EXISTS is_custom_type INTEGER DEFAULT 0")
+            conn.commit()
+        except Exception:
+            try:
+                conn.conn.rollback()
+            except Exception:
+                pass
 
-    # Migration: Add connection_type column if missing
-    try:
-        cursor.execute("ALTER TABLE devices ADD COLUMN connection_type TEXT DEFAULT 'auto'")
-        conn.commit()
-    except Exception:
-        pass
+        try:
+            cursor.execute("ALTER TABLE devices ADD COLUMN IF NOT EXISTS connection_type TEXT DEFAULT 'auto'")
+            conn.commit()
+        except Exception:
+            try:
+                conn.conn.rollback()
+            except Exception:
+                pass
+    else:
+        try:
+            cursor.execute("PRAGMA table_info(devices)")
+            cols = [r["name"] if isinstance(r, dict) else r[1] for r in cursor.fetchall()]
+            if "is_custom_type" not in cols:
+                cursor.execute("ALTER TABLE devices ADD COLUMN is_custom_type INTEGER DEFAULT 0")
+                conn.commit()
+            if "connection_type" not in cols:
+                cursor.execute("ALTER TABLE devices ADD COLUMN connection_type TEXT DEFAULT 'auto'")
+                conn.commit()
+        except Exception:
+            pass
 
     # If connected to PostgreSQL, migrate any existing SQLite data
     if conn.is_pg:
@@ -461,6 +479,7 @@ def get_all_devices():
                 d["open_ports"] = json.loads(d["open_ports"])
             except Exception:
                 d["open_ports"] = []
+        d["connection_type"] = d.get("connection_type") or "auto"
         devices.append(d)
     conn.close()
     return devices
@@ -492,8 +511,35 @@ def update_device_details(device_id, custom_name=None, device_type=None, is_trus
     if fields:
         values.append(device_id)
         sql = f"UPDATE devices SET {', '.join(fields)} WHERE id = ?"
-        cursor.execute(sql, values)
-        conn.commit()
+        try:
+            cursor.execute(sql, values)
+            conn.commit()
+        except Exception as e:
+            err_str = str(e).lower()
+            if "connection_type" in err_str or "no such column" in err_str or "does not exist" in err_str:
+                if conn.is_pg:
+                    try:
+                        conn.conn.rollback()
+                        cursor.execute("ALTER TABLE devices ADD COLUMN IF NOT EXISTS connection_type TEXT DEFAULT 'auto'")
+                        cursor.execute("ALTER TABLE devices ADD COLUMN IF NOT EXISTS is_custom_type INTEGER DEFAULT 0")
+                        conn.commit()
+                        cursor.execute(sql, values)
+                        conn.commit()
+                    except Exception as e2:
+                        conn.close()
+                        raise e2
+                else:
+                    try:
+                        cursor.execute("ALTER TABLE devices ADD COLUMN connection_type TEXT DEFAULT 'auto'")
+                        conn.commit()
+                        cursor.execute(sql, values)
+                        conn.commit()
+                    except Exception as e2:
+                        conn.close()
+                        raise e2
+            else:
+                conn.close()
+                raise e
     conn.close()
 
 def update_device_ports(device_id, open_ports_list):
