@@ -352,6 +352,217 @@ async function checkAuthStatus() {
   }
 }
 
+// =============================================================================
+// GLOBAL THEME ENGINE (12 EXECUTIVE THEMES)
+// =============================================================================
+const APP_THEMES = [
+  {
+    id: "cyber-cyan",
+    name: "Cyber Cyan",
+    tagline: "Padrão Aeroespacial (Original)",
+    primary: "#06b6d4",
+    bg: "#060911",
+    card: "#101726",
+    swatches: ["#060911", "#101726", "#06b6d4", "#22d3ee"]
+  },
+  {
+    id: "matrix-emerald",
+    name: "Matrix Emerald",
+    tagline: "Terminal Hacker Néon",
+    primary: "#10b981",
+    bg: "#030c06",
+    card: "#081d11",
+    swatches: ["#030c06", "#081d11", "#10b981", "#34d399"]
+  },
+  {
+    id: "tokyo-night",
+    name: "Tokyo Night",
+    tagline: "Shibuya Neon Glow",
+    primary: "#a855f7",
+    bg: "#0c0a18",
+    card: "#17132b",
+    swatches: ["#0c0a18", "#17132b", "#a855f7", "#ec4899"]
+  },
+  {
+    id: "dracula",
+    name: "Dracula",
+    tagline: "Dark Slate Vampírico",
+    primary: "#bd93f9",
+    bg: "#161520",
+    card: "#211f32",
+    swatches: ["#161520", "#211f32", "#bd93f9", "#ff79c6"]
+  },
+  {
+    id: "solarized-amber",
+    name: "Solarized Amber",
+    tagline: "Dourado Executivo Nobre",
+    primary: "#f59e0b",
+    bg: "#120b04",
+    card: "#221508",
+    swatches: ["#120b04", "#221508", "#f59e0b", "#fbbf24"]
+  },
+  {
+    id: "crimson-protocol",
+    name: "Crimson Protocol",
+    tagline: "Red Alert Tático",
+    primary: "#ef4444",
+    bg: "#120507",
+    card: "#220b0f",
+    swatches: ["#120507", "#220b0f", "#ef4444", "#f87171"]
+  },
+  {
+    id: "nordic-frost",
+    name: "Nordic Frost",
+    tagline: "Azul Glaciar Ártico",
+    primary: "#38bdf8",
+    bg: "#060e18",
+    card: "#102138",
+    swatches: ["#060e18", "#102138", "#38bdf8", "#7dd3fc"]
+  },
+  {
+    id: "sunset-synthwave",
+    name: "Sunset Synthwave",
+    tagline: "Retro 80s Sunset Glow",
+    primary: "#f97316",
+    bg: "#100b1a",
+    card: "#201635",
+    swatches: ["#100b1a", "#201635", "#f97316", "#f43f5e"]
+  },
+  {
+    id: "oled-black",
+    name: "OLED Stealth Black",
+    tagline: "Preto Absoluto Puro",
+    primary: "#ffffff",
+    bg: "#000000",
+    card: "#0a0a0a",
+    swatches: ["#000000", "#0a0a0a", "#f8fafc", "#94a3b8"]
+  },
+  {
+    id: "moss-forest",
+    name: "Moss & Forest",
+    tagline: "Verde Orgânico Musgo",
+    primary: "#84cc16",
+    bg: "#071008",
+    card: "#132515",
+    swatches: ["#071008", "#132515", "#84cc16", "#22c55e"]
+  },
+  {
+    id: "royal-sapphire",
+    name: "Royal Sapphire",
+    tagline: "Azul Safira & Índigo de Luxo",
+    primary: "#3b82f6",
+    bg: "#050b1a",
+    card: "#101c3c",
+    swatches: ["#050b1a", "#101c3c", "#3b82f6", "#6366f1"]
+  },
+  {
+    id: "cyberpunk-yellow",
+    name: "Cyberpunk 2077",
+    tagline: "Amarelo Alta Tensão",
+    primary: "#eab308",
+    bg: "#101004",
+    card: "#202008",
+    swatches: ["#101004", "#202008", "#eab308", "#fde047"]
+  }
+];
+
+function getCurrentTheme() {
+  return document.documentElement.getAttribute("data-theme") || localStorage.getItem("netpulse_theme") || "cyber-cyan";
+}
+
+function setAppTheme(themeId, notify = true) {
+  const theme = APP_THEMES.find(t => t.id === themeId);
+  if (!theme) return;
+
+  document.documentElement.setAttribute("data-theme", themeId);
+  try {
+    localStorage.setItem("netpulse_theme", themeId);
+  } catch (e) {}
+
+  // Update theme badge in sidebar if present
+  const badge = document.getElementById("sidebar-current-theme-badge");
+  if (badge) {
+    badge.textContent = theme.name;
+  }
+
+  // Update Chart.js line color if instantiated
+  if (state.latencyChart && state.latencyChart.data?.datasets?.[0]) {
+    state.latencyChart.data.datasets[0].borderColor = theme.primary;
+    state.latencyChart.update("none");
+  }
+
+  renderThemesGrid();
+
+  if (notify) {
+    showToast(`Tema "${theme.name}" aplicado!`, "success");
+  }
+}
+
+function renderThemesGrid() {
+  const container = document.getElementById("themes-grid");
+  if (!container) return;
+
+  const currentTheme = getCurrentTheme();
+
+  container.innerHTML = APP_THEMES.map(theme => {
+    const isSelected = (theme.id === currentTheme);
+    return `
+      <div onclick="setAppTheme('${theme.id}')" 
+        class="theme-card relative p-3.5 rounded-2xl cursor-pointer transition-all duration-200 border flex flex-col justify-between ${
+          isSelected 
+            ? 'bg-slate-900/90 border-pink-500/80 shadow-[0_0_20px_rgba(236,72,153,0.25)] ring-1 ring-pink-500/50 scale-[1.02]' 
+            : 'bg-slate-950/70 border-slate-800 hover:border-slate-700 hover:bg-slate-900/60'
+        }">
+        
+        <!-- Top: Swatches & Active Check -->
+        <div class="flex items-center justify-between mb-2.5">
+          <div class="flex items-center gap-1.5 p-1 rounded-xl bg-black/40 border border-white/5">
+            ${theme.swatches.map(color => `
+              <span class="w-3.5 h-3.5 rounded-full border border-white/10 shadow-sm inline-block" style="background-color: ${color};"></span>
+            `).join('')}
+          </div>
+          ${isSelected ? `
+            <span class="flex items-center gap-1 px-2 py-0.5 rounded-md bg-pink-500/20 text-pink-300 border border-pink-500/40 text-[10px] font-bold uppercase font-mono">
+              <i data-lucide="check" class="w-3 h-3 text-pink-400"></i> Ativo
+            </span>
+          ` : `
+            <span class="text-[10px] text-slate-500 font-medium hover:text-slate-300">Escolher</span>
+          `}
+        </div>
+
+        <!-- Middle: Name & Tagline -->
+        <div>
+          <div class="font-bold text-sm text-white flex items-center gap-1.5">
+            <span>${theme.name}</span>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-0.5">${theme.tagline}</p>
+        </div>
+
+      </div>
+    `;
+  }).join('');
+
+  if (window.lucide) lucide.createIcons();
+}
+
+function openThemesModal() {
+  const modal = document.getElementById("modal-themes");
+  if (!modal) return;
+  renderThemesGrid();
+  modal.classList.remove("hidden");
+  if (window.lucide) lucide.createIcons();
+}
+
+function closeThemesModal() {
+  const modal = document.getElementById("modal-themes");
+  if (modal) modal.classList.add("hidden");
+}
+
+function initAppTheme() {
+  const current = getCurrentTheme();
+  setAppTheme(current, false);
+}
+
 function initAppData() {
   setViewMode(state.viewMode);
   updateSortIndicators();
@@ -370,6 +581,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (window.lucide) {
     lucide.createIcons();
   }
+  initAppTheme();
   updatePrivacyIcon();
   setViewMode(state.viewMode);
   const isAuth = await checkAuthStatus();

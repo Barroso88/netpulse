@@ -1,15 +1,424 @@
 /* ========================================================================= */
-/* NETPULSE - DESIGN SYSTEM 2.0 (EXECUTIVE CYBER GLASS)                      */
+/* NETPULSE - GLOBAL THEME ENGINE (12 EXECUTIVE COMPLETE COLOR THEMES)       */
 /* ========================================================================= */
 
-/* Global Atmospheric Background & Typography */
+:root,
+html,
+html[data-theme="cyber-cyan"] {
+  --np-bg-body: #060911;
+  --np-bg-gradient: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(6, 182, 212, 0.15), transparent 70%),
+                    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(99, 102, 241, 0.10), transparent 60%),
+                    radial-gradient(ellipse 50% 30% at 0% 50%, rgba(16, 185, 129, 0.05), transparent 50%);
+  --np-bg-sidebar: rgba(8, 12, 22, 0.95);
+  --np-bg-card: #101726;
+  --np-bg-card-hover: #162033;
+  --np-bg-surface: #090d16;
+  --np-bg-input: #090d16;
+  --np-border: rgba(255, 255, 255, 0.08);
+  --np-border-hover: rgba(6, 182, 212, 0.4);
+  --np-accent: #06b6d4;
+  --np-accent-light: #22d3ee;
+  --np-accent-dark: #0891b2;
+  --np-accent-glow: rgba(6, 182, 212, 0.35);
+  --np-accent-rgb: 6, 182, 212;
+  --np-accent-contrast: #000000;
+  --np-text-primary: #f8fafc;
+  --np-text-secondary: #94a3b8;
+  --np-text-accent: #22d3ee;
+}
+
+html[data-theme="matrix-emerald"] {
+  --np-bg-body: #030c06;
+  --np-bg-gradient: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(16, 185, 129, 0.22), transparent 70%),
+                    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(5, 150, 105, 0.15), transparent 60%),
+                    radial-gradient(ellipse 50% 30% at 0% 50%, rgba(52, 211, 153, 0.08), transparent 50%);
+  --np-bg-sidebar: rgba(4, 18, 10, 0.96);
+  --np-bg-card: #081d11;
+  --np-bg-card-hover: #0d2c1a;
+  --np-bg-surface: #041208;
+  --np-bg-input: #041208;
+  --np-border: rgba(16, 185, 129, 0.22);
+  --np-border-hover: rgba(52, 211, 153, 0.6);
+  --np-accent: #10b981;
+  --np-accent-light: #34d399;
+  --np-accent-dark: #059669;
+  --np-accent-glow: rgba(16, 185, 129, 0.45);
+  --np-accent-rgb: 16, 185, 129;
+  --np-accent-contrast: #000000;
+  --np-text-primary: #ecfdf5;
+  --np-text-secondary: #6ee7b7;
+  --np-text-accent: #34d399;
+}
+
+html[data-theme="tokyo-night"] {
+  --np-bg-body: #0c0a18;
+  --np-bg-gradient: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(168, 85, 247, 0.20), transparent 70%),
+                    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(236, 72, 153, 0.14), transparent 60%),
+                    radial-gradient(ellipse 50% 30% at 0% 50%, rgba(139, 92, 246, 0.08), transparent 50%);
+  --np-bg-sidebar: rgba(15, 12, 28, 0.96);
+  --np-bg-card: #17132b;
+  --np-bg-card-hover: #221c3f;
+  --np-bg-surface: #0f0d1f;
+  --np-bg-input: #0f0d1f;
+  --np-border: rgba(168, 85, 247, 0.20);
+  --np-border-hover: rgba(192, 132, 252, 0.6);
+  --np-accent: #a855f7;
+  --np-accent-light: #c084fc;
+  --np-accent-dark: #9333ea;
+  --np-accent-glow: rgba(168, 85, 247, 0.45);
+  --np-accent-rgb: 168, 85, 247;
+  --np-accent-contrast: #000000;
+  --np-text-primary: #faf5ff;
+  --np-text-secondary: #d8b4fe;
+  --np-text-accent: #c084fc;
+}
+
+html[data-theme="dracula"] {
+  --np-bg-body: #161520;
+  --np-bg-gradient: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(189, 147, 249, 0.18), transparent 70%),
+                    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(255, 121, 198, 0.12), transparent 60%),
+                    radial-gradient(ellipse 50% 30% at 0% 50%, rgba(139, 233, 253, 0.08), transparent 50%);
+  --np-bg-sidebar: rgba(22, 21, 33, 0.96);
+  --np-bg-card: #211f32;
+  --np-bg-card-hover: #2b2841;
+  --np-bg-surface: #191825;
+  --np-bg-input: #191825;
+  --np-border: rgba(189, 147, 249, 0.18);
+  --np-border-hover: rgba(255, 121, 198, 0.5);
+  --np-accent: #bd93f9;
+  --np-accent-light: #d8b4fe;
+  --np-accent-dark: #9059f6;
+  --np-accent-glow: rgba(189, 147, 249, 0.4);
+  --np-accent-rgb: 189, 147, 249;
+  --np-accent-contrast: #000000;
+  --np-text-primary: #f8f8f2;
+  --np-text-secondary: #bfb5dd;
+  --np-text-accent: #bd93f9;
+}
+
+html[data-theme="solarized-amber"] {
+  --np-bg-body: #120b04;
+  --np-bg-gradient: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(245, 158, 11, 0.20), transparent 70%),
+                    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(217, 119, 6, 0.14), transparent 60%),
+                    radial-gradient(ellipse 50% 30% at 0% 50%, rgba(251, 191, 36, 0.08), transparent 50%);
+  --np-bg-sidebar: rgba(24, 15, 8, 0.96);
+  --np-bg-card: #221508;
+  --np-bg-card-hover: #311e0c;
+  --np-bg-surface: #160e06;
+  --np-bg-input: #160e06;
+  --np-border: rgba(245, 158, 11, 0.22);
+  --np-border-hover: rgba(251, 191, 36, 0.6);
+  --np-accent: #f59e0b;
+  --np-accent-light: #fbbf24;
+  --np-accent-dark: #d97706;
+  --np-accent-glow: rgba(245, 158, 11, 0.45);
+  --np-accent-rgb: 245, 158, 11;
+  --np-accent-contrast: #000000;
+  --np-text-primary: #fffbeb;
+  --np-text-secondary: #fde68a;
+  --np-text-accent: #fbbf24;
+}
+
+html[data-theme="crimson-protocol"] {
+  --np-bg-body: #120507;
+  --np-bg-gradient: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(239, 68, 68, 0.22), transparent 70%),
+                    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(185, 28, 28, 0.16), transparent 60%),
+                    radial-gradient(ellipse 50% 30% at 0% 50%, rgba(248, 113, 113, 0.08), transparent 50%);
+  --np-bg-sidebar: rgba(24, 8, 11, 0.96);
+  --np-bg-card: #220b0f;
+  --np-bg-card-hover: #331117;
+  --np-bg-surface: #17070a;
+  --np-bg-input: #17070a;
+  --np-border: rgba(239, 68, 68, 0.22);
+  --np-border-hover: rgba(248, 113, 113, 0.6);
+  --np-accent: #ef4444;
+  --np-accent-light: #f87171;
+  --np-accent-dark: #dc2626;
+  --np-accent-glow: rgba(239, 68, 68, 0.48);
+  --np-accent-rgb: 239, 68, 68;
+  --np-accent-contrast: #ffffff;
+  --np-text-primary: #fef2f2;
+  --np-text-secondary: #fca5a5;
+  --np-text-accent: #f87171;
+}
+
+html[data-theme="nordic-frost"] {
+  --np-bg-body: #060e18;
+  --np-bg-gradient: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(56, 189, 248, 0.20), transparent 70%),
+                    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(14, 165, 233, 0.14), transparent 60%),
+                    radial-gradient(ellipse 50% 30% at 0% 50%, rgba(186, 230, 253, 0.08), transparent 50%);
+  --np-bg-sidebar: rgba(10, 20, 34, 0.96);
+  --np-bg-card: #102138;
+  --np-bg-card-hover: #182e4e;
+  --np-bg-surface: #0b1727;
+  --np-bg-input: #0b1727;
+  --np-border: rgba(56, 189, 248, 0.18);
+  --np-border-hover: rgba(125, 211, 252, 0.6);
+  --np-accent: #38bdf8;
+  --np-accent-light: #7dd3fc;
+  --np-accent-dark: #0284c7;
+  --np-accent-glow: rgba(56, 189, 248, 0.42);
+  --np-accent-rgb: 56, 189, 248;
+  --np-accent-contrast: #000000;
+  --np-text-primary: #f0f9ff;
+  --np-text-secondary: #bae6fd;
+  --np-text-accent: #7dd3fc;
+}
+
+html[data-theme="sunset-synthwave"] {
+  --np-bg-body: #100b1a;
+  --np-bg-gradient: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(249, 115, 22, 0.20), transparent 70%),
+                    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(244, 63, 94, 0.16), transparent 60%),
+                    radial-gradient(ellipse 50% 30% at 0% 50%, rgba(217, 70, 239, 0.10), transparent 50%);
+  --np-bg-sidebar: rgba(22, 16, 36, 0.96);
+  --np-bg-card: #201635;
+  --np-bg-card-hover: #2c1f49;
+  --np-bg-surface: #150f24;
+  --np-bg-input: #150f24;
+  --np-border: rgba(249, 115, 22, 0.20);
+  --np-border-hover: rgba(251, 146, 60, 0.6);
+  --np-accent: #f97316;
+  --np-accent-light: #fb923c;
+  --np-accent-dark: #ea580c;
+  --np-accent-glow: rgba(249, 115, 22, 0.45);
+  --np-accent-rgb: 249, 115, 22;
+  --np-accent-contrast: #000000;
+  --np-text-primary: #fff7ed;
+  --np-text-secondary: #fed7aa;
+  --np-text-accent: #fb923c;
+}
+
+html[data-theme="oled-black"] {
+  --np-bg-body: #000000;
+  --np-bg-gradient: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(255, 255, 255, 0.06), transparent 70%);
+  --np-bg-sidebar: #040404;
+  --np-bg-card: #0a0a0a;
+  --np-bg-card-hover: #161616;
+  --np-bg-surface: #040404;
+  --np-bg-input: #060606;
+  --np-border: rgba(255, 255, 255, 0.16);
+  --np-border-hover: rgba(255, 255, 255, 0.5);
+  --np-accent: #f8fafc;
+  --np-accent-light: #ffffff;
+  --np-accent-dark: #cbd5e1;
+  --np-accent-glow: rgba(255, 255, 255, 0.3);
+  --np-accent-rgb: 248, 250, 252;
+  --np-accent-contrast: #000000;
+  --np-text-primary: #ffffff;
+  --np-text-secondary: #94a3b8;
+  --np-text-accent: #ffffff;
+}
+
+html[data-theme="moss-forest"] {
+  --np-bg-body: #071008;
+  --np-bg-gradient: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(132, 204, 22, 0.20), transparent 70%),
+                    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(34, 197, 94, 0.14), transparent 60%),
+                    radial-gradient(ellipse 50% 30% at 0% 50%, rgba(163, 230, 53, 0.08), transparent 50%);
+  --np-bg-sidebar: rgba(14, 26, 16, 0.96);
+  --np-bg-card: #132515;
+  --np-bg-card-hover: #1b351e;
+  --np-bg-surface: #0c180e;
+  --np-bg-input: #0c180e;
+  --np-border: rgba(132, 204, 22, 0.20);
+  --np-border-hover: rgba(163, 230, 53, 0.6);
+  --np-accent: #84cc16;
+  --np-accent-light: #a3e635;
+  --np-accent-dark: #65a30d;
+  --np-accent-glow: rgba(132, 204, 22, 0.45);
+  --np-accent-rgb: 132, 204, 22;
+  --np-accent-contrast: #000000;
+  --np-text-primary: #f7fee7;
+  --np-text-secondary: #d9f99d;
+  --np-text-accent: #a3e635;
+}
+
+html[data-theme="royal-sapphire"] {
+  --np-bg-body: #050b1a;
+  --np-bg-gradient: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(59, 130, 246, 0.22), transparent 70%),
+                    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(99, 102, 241, 0.15), transparent 60%),
+                    radial-gradient(ellipse 50% 30% at 0% 50%, rgba(147, 197, 253, 0.08), transparent 50%);
+  --np-bg-sidebar: rgba(10, 18, 38, 0.96);
+  --np-bg-card: #101c3c;
+  --np-bg-card-hover: #182855;
+  --np-bg-surface: #091124;
+  --np-bg-input: #091124;
+  --np-border: rgba(59, 130, 246, 0.22);
+  --np-border-hover: rgba(96, 165, 250, 0.6);
+  --np-accent: #3b82f6;
+  --np-accent-light: #60a5fa;
+  --np-accent-dark: #2563eb;
+  --np-accent-glow: rgba(59, 130, 246, 0.48);
+  --np-accent-rgb: 59, 130, 246;
+  --np-accent-contrast: #ffffff;
+  --np-text-primary: #eff6ff;
+  --np-text-secondary: #bfdbfe;
+  --np-text-accent: #60a5fa;
+}
+
+html[data-theme="cyberpunk-yellow"] {
+  --np-bg-body: #101004;
+  --np-bg-gradient: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(234, 179, 8, 0.24), transparent 70%),
+                    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(202, 138, 4, 0.16), transparent 60%),
+                    radial-gradient(ellipse 50% 30% at 0% 50%, rgba(253, 224, 71, 0.10), transparent 50%);
+  --np-bg-sidebar: rgba(22, 22, 6, 0.96);
+  --np-bg-card: #202008;
+  --np-bg-card-hover: #30300c;
+  --np-bg-surface: #141404;
+  --np-bg-input: #141404;
+  --np-border: rgba(234, 179, 8, 0.24);
+  --np-border-hover: rgba(253, 224, 71, 0.65);
+  --np-accent: #eab308;
+  --np-accent-light: #fde047;
+  --np-accent-dark: #ca8a04;
+  --np-accent-glow: rgba(234, 179, 8, 0.5);
+  --np-accent-rgb: 234, 179, 8;
+  --np-accent-contrast: #000000;
+  --np-text-primary: #fefce8;
+  --np-text-secondary: #fef08a;
+  --np-text-accent: #fde047;
+}
+
+/* ========================================================================= */
+/* GLOBAL THEME OVERRIDES (AFFECTS 100% OF APPLICATION COMPONENTS)           */
+/* ========================================================================= */
+
 body {
-  background-color: #060911;
-  background-image: 
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(6, 182, 212, 0.12), transparent 70%),
-    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(99, 102, 241, 0.08), transparent 60%),
-    radial-gradient(ellipse 50% 30% at 0% 50%, rgba(16, 185, 129, 0.05), transparent 50%);
+  background-color: var(--np-bg-body) !important;
+  background-image: var(--np-bg-gradient) !important;
   background-attachment: fixed;
+  color: var(--np-text-primary);
+  transition: background 0.25s ease, color 0.25s ease;
+}
+
+/* Header Glassmorphism Theme */
+header {
+  background: var(--np-bg-sidebar) !important;
+  border-bottom: 1px solid var(--np-border) !important;
+}
+
+/* Sidebar Theme */
+#app-sidebar {
+  background: var(--np-bg-sidebar) !important;
+  border-right-color: var(--np-border) !important;
+}
+.sidebar-tab-btn:hover {
+  background: rgba(var(--np-accent-rgb), 0.12) !important;
+  color: var(--np-accent-light) !important;
+}
+.sidebar-tab-btn.active {
+  background: rgba(var(--np-accent-rgb), 0.18) !important;
+  color: var(--np-accent-light) !important;
+  border-color: var(--np-accent) !important;
+}
+
+/* Cards & Surface Theme */
+.bg-darkcard,
+.inventory-control-deck,
+#modal-device-details > div,
+#modal-edit-device > div,
+#modal-cleanup-offline > div,
+#modal-themes > div,
+#modal-ports > div,
+#alerts-drawer,
+.device-item,
+.network-node-card {
+  background-color: var(--np-bg-card) !important;
+  border-color: var(--np-border) !important;
+}
+
+.bg-darkbg {
+  background-color: var(--np-bg-body) !important;
+}
+
+.bg-darkcardhover:hover {
+  background-color: var(--np-bg-card-hover) !important;
+}
+
+.border-darkborder,
+.border-slate-800,
+.border-slate-800\/80,
+.border-slate-800\/90,
+.border-slate-800\/60 {
+  border-color: var(--np-border) !important;
+}
+
+/* Form Inputs, Selects & Textareas */
+input[type="text"],
+input[type="search"],
+input[type="password"],
+select,
+textarea,
+.bg-slate-950,
+.bg-slate-950\/90,
+.bg-slate-900,
+.bg-slate-900\/90 {
+  background-color: var(--np-bg-input) !important;
+  border-color: var(--np-border) !important;
+}
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--np-accent) !important;
+  box-shadow: 0 0 0 2px var(--np-accent-glow) !important;
+}
+
+/* Primary Accent Utilities */
+.btn-cyber,
+.bg-cyan-500,
+button.bg-cyan-500 {
+  background-color: var(--np-accent) !important;
+  color: var(--np-accent-contrast) !important;
+  box-shadow: 0 0 16px var(--np-accent-glow) !important;
+}
+.btn-cyber:hover,
+.bg-cyan-500:hover,
+button.bg-cyan-500:hover {
+  background-color: var(--np-accent-light) !important;
+}
+
+.text-cyan-400,
+.text-cyan-300,
+.text-brand-400 {
+  color: var(--np-accent-light) !important;
+}
+.text-cyan-500,
+.text-brand-500 {
+  color: var(--np-accent) !important;
+}
+
+.border-cyan-500,
+.border-cyan-500\/80,
+.border-cyan-500\/50,
+.border-cyan-500\/30 {
+  border-color: var(--np-accent) !important;
+}
+
+/* Segmented Switcher & Category Pills */
+.conn-pill.active,
+.category-pill.active,
+.status-pill.active {
+  background-color: var(--np-accent) !important;
+  color: var(--np-accent-contrast) !important;
+  box-shadow: 0 0 14px var(--np-accent-glow) !important;
+}
+.conn-pill.active *,
+.category-pill.active *,
+.status-pill.active * {
+  color: var(--np-accent-contrast) !important;
+}
+
+/* Mobile Bottom Nav Active */
+.mobile-nav-btn.active {
+  color: var(--np-accent-light) !important;
+}
+
+/* Scrollbar Thumb */
+::-webkit-scrollbar-thumb {
+  background: rgba(var(--np-accent-rgb), 0.25) !important;
+  border: 1px solid var(--np-border) !important;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--np-accent) !important;
 }
 
 /* Custom Sleek Scrollbar */
@@ -61,18 +470,18 @@ header {
   filter: brightness(1.04);
 }
 
-/* KPI 1: Dispositivos - Deep Luminous Cyan with Ambient Backlight */
+/* KPI 1: Dispositivos - Deep Dynamic Theme Luminous Ambient */
 .kpi-card-devices {
-  background: linear-gradient(145deg, rgba(8, 51, 68, 0.95) 0%, rgba(4, 27, 36, 0.98) 100%) !important;
-  border: 1.5px solid rgba(6, 182, 212, 0.6) !important;
-  box-shadow: 0 10px 30px -4px rgba(0, 0, 0, 0.8), 0 0 24px -2px rgba(6, 182, 212, 0.35) !important;
+  background: linear-gradient(145deg, rgba(var(--np-accent-rgb), 0.25) 0%, rgba(var(--np-accent-rgb), 0.08) 100%) !important;
+  border: 1.5px solid var(--np-accent) !important;
+  box-shadow: 0 10px 30px -4px rgba(0, 0, 0, 0.8), 0 0 24px -2px var(--np-accent-glow) !important;
 }
 .kpi-card-devices::before {
-  background: linear-gradient(90deg, transparent, #22d3ee, #67e8f9, transparent);
+  background: linear-gradient(90deg, transparent, var(--np-accent-light), transparent) !important;
 }
 .kpi-card-devices:hover {
-  border-color: #38bdf8 !important;
-  box-shadow: 0 16px 40px -4px rgba(0, 0, 0, 0.85), 0 0 32px 0px rgba(6, 182, 212, 0.55) !important;
+  border-color: var(--np-accent-light) !important;
+  box-shadow: 0 16px 40px -4px rgba(0, 0, 0, 0.85), 0 0 32px 0px var(--np-accent-glow) !important;
 }
 
 /* KPI 2: Latência Router - Solid Electric Cobalt Blue */

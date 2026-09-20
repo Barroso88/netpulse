@@ -48,7 +48,16 @@
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <link rel="stylesheet" href="/styles.css?v=11.0">
+  <script>
+    (function() {
+      try {
+        var t = localStorage.getItem('netpulse_theme') || 'cyber-cyan';
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/styles.css?v=12.0">
 </head>
 <body class="bg-darkbg text-slate-100 min-h-screen font-sans antialiased selection:bg-cyan-500 selection:text-black">
 
@@ -154,11 +163,20 @@
           </button>
 
           <!-- Modo Privacidade -->
-          <button id="btn-privacy-toggle" onclick="togglePrivacyMode()" class="sidebar-tab-btn w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-cyan-400 transition" title="Modo Privacidade">
+          <button id="btn-privacy-toggle" onclick="togglePrivacyMode()" class="sidebar-tab-btn w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-cyan-400 transition cursor-pointer" title="Modo Privacidade">
             <div class="flex items-center gap-3 min-w-0">
               <i id="privacy-icon" data-lucide="eye" class="w-4 h-4 text-slate-400 flex-shrink-0"></i>
               <span class="sidebar-text truncate">Modo Privacidade</span>
             </div>
+          </button>
+
+          <!-- Temas & Cores (12 Temas Visuais) -->
+          <button id="btn-theme-switcher" onclick="openThemesModal()" class="sidebar-tab-btn w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-pink-300 hover:text-white hover:bg-pink-500/10 transition cursor-pointer" title="Personalizar Temas e Cores">
+            <div class="flex items-center gap-3 min-w-0">
+              <i data-lucide="palette" class="w-4 h-4 text-pink-400 flex-shrink-0"></i>
+              <span class="sidebar-text truncate">Temas & Cores</span>
+            </div>
+            <span id="sidebar-current-theme-badge" class="sidebar-text text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-pink-500/20 text-pink-300 border border-pink-500/30">12</span>
           </button>
         </div>
       </div>
@@ -220,8 +238,14 @@
           <span class="text-slate-300 font-medium text-[11px]">Tempo Real</span>
         </div>
 
+        <!-- Theme Switcher Button -->
+        <button id="btn-header-themes" onclick="openThemesModal()" class="p-2 sm:p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-pink-300 hover:text-white border border-darkborder transition cursor-pointer flex items-center gap-1.5 active:scale-95 shadow-sm" title="Personalizar Temas & Cores (12 Paletas)">
+          <i data-lucide="palette" class="w-4 h-4 text-pink-400"></i>
+          <span class="hidden md:inline text-xs font-semibold">Temas</span>
+        </button>
+
         <!-- Alerts Bell Trigger -->
-        <button id="btn-open-alerts" onclick="openAlertsDrawer()" class="relative p-2 sm:p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-darkborder transition" title="Alertas">
+        <button id="btn-open-alerts" onclick="openAlertsDrawer()" class="relative p-2 sm:p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-darkborder transition cursor-pointer" title="Alertas">
           <i data-lucide="bell" class="w-4 h-4"></i>
           <span id="alerts-badge" class="hidden absolute -top-1.5 -right-1.5 px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-amber-500 text-slate-950 border border-amber-300 shadow-sm animate-pulse">0</span>
         </button>
@@ -1244,6 +1268,50 @@
   </div>
 
   <!-- ========================================================================= -->
+  <!-- MODAL: THEME SELECTION ENGINE (12 EXECUTIVE COMPLETE THEMES)              -->
+  <!-- ========================================================================= -->
+  <div id="modal-themes" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+    <div class="bg-darkcard border border-darkborder w-full max-w-2xl rounded-2xl p-5 sm:p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+      
+      <!-- Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800/80 flex-shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-pink-500/10 border border-pink-500/30 flex items-center justify-center text-pink-400">
+            <i data-lucide="palette" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-base text-white flex items-center gap-2">
+              Temas & Cores do Sistema
+              <span class="text-[10px] uppercase font-mono font-extrabold px-2 py-0.5 rounded-full bg-pink-500/20 text-pink-300 border border-pink-500/30">12 Temas</span>
+            </h3>
+            <p class="text-xs text-slate-400">Transformação completa de cores, fundos, cartões, luzes néon e gráficos.</p>
+          </div>
+        </div>
+        <button onclick="closeThemesModal()" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800/60 transition cursor-pointer">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Themes Grid (Scrollable) -->
+      <div id="themes-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 overflow-y-auto pr-1 py-1 flex-1">
+        <!-- Rendered dynamically by renderThemesGrid() in app.js -->
+      </div>
+
+      <!-- Footer Info -->
+      <div class="flex items-center justify-between pt-3 border-t border-slate-800/80 text-xs flex-shrink-0">
+        <div class="flex items-center gap-1.5 text-slate-400 text-[11px]">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-pink-400"></i>
+          <span>O tema é guardado automaticamente e preservado nas suas próximas visitas.</span>
+        </div>
+        <button onclick="closeThemesModal()" class="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 font-semibold transition cursor-pointer text-xs">
+          Fechar
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
   <!-- MODAL: PORT SCAN DETAILS                                                  -->
   <!-- ========================================================================= -->
   <div id="modal-ports" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
@@ -1417,6 +1485,6 @@
   <!-- Toast Notification Container -->
   <div id="toast-container" class="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 left-4 sm:left-auto z-50 flex flex-col gap-2 pointer-events-none"></div>
 
-  <script src="/app.js?v=11.0"></script>
+  <script src="/app.js?v=12.0"></script>
 </body>
 </html>
