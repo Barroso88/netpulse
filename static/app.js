@@ -365,7 +365,7 @@ const APP_THEMES = [
     primary: "#0284c7",
     bg: "#f8fafc",
     card: "#ffffff",
-    swatches: ["#f8fafc", "#ffffff", "#0284c7", "#38bdf8"]
+    swatches: ["#f8fafc", "#0f172a", "#0284c7", "#38bdf8"]
   },
   {
     id: "nordic-daylight",
@@ -375,7 +375,7 @@ const APP_THEMES = [
     primary: "#0ea5e9",
     bg: "#f0f9ff",
     card: "#ffffff",
-    swatches: ["#f0f9ff", "#ffffff", "#0ea5e9", "#7dd3fc"]
+    swatches: ["#f0f9ff", "#0b192c", "#0ea5e9", "#7dd3fc"]
   },
   {
     id: "mint-paper",
@@ -385,7 +385,7 @@ const APP_THEMES = [
     primary: "#059669",
     bg: "#f0fdf4",
     card: "#ffffff",
-    swatches: ["#f0fdf4", "#ffffff", "#059669", "#34d399"]
+    swatches: ["#f0fdf4", "#052417", "#059669", "#34d399"]
   },
   {
     id: "sand-latte",
@@ -395,7 +395,7 @@ const APP_THEMES = [
     primary: "#d97706",
     bg: "#fefce8",
     card: "#ffffff",
-    swatches: ["#fefce8", "#ffffff", "#d97706", "#f59e0b"]
+    swatches: ["#fefce8", "#1f140a", "#d97706", "#fbbf24"]
   },
   {
     id: "lavender-cloud",
@@ -405,7 +405,7 @@ const APP_THEMES = [
     primary: "#7c3aed",
     bg: "#faf5ff",
     card: "#ffffff",
-    swatches: ["#faf5ff", "#ffffff", "#7c3aed", "#c084fc"]
+    swatches: ["#faf5ff", "#160d26", "#7c3aed", "#c084fc"]
   },
   {
     id: "sunset-dawn",
@@ -415,7 +415,7 @@ const APP_THEMES = [
     primary: "#ea580c",
     bg: "#fff7ed",
     card: "#ffffff",
-    swatches: ["#fff7ed", "#ffffff", "#ea580c", "#fb923c"]
+    swatches: ["#fff7ed", "#220e08", "#ea580c", "#fb923c"]
   },
   {
     id: "silver-titanium",
@@ -425,7 +425,7 @@ const APP_THEMES = [
     primary: "#0891b2",
     bg: "#f1f5f9",
     card: "#ffffff",
-    swatches: ["#f1f5f9", "#ffffff", "#0891b2", "#06b6d4"]
+    swatches: ["#f1f5f9", "#111827", "#0891b2", "#22d3ee"]
   },
   {
     id: "rose-quartz",
@@ -435,7 +435,7 @@ const APP_THEMES = [
     primary: "#e11d48",
     bg: "#fff1f2",
     card: "#ffffff",
-    swatches: ["#fff1f2", "#ffffff", "#e11d48", "#f43f5e"]
+    swatches: ["#fff1f2", "#200812", "#e11d48", "#fb7185"]
   },
 
   // --- TEMAS ESCUROS & CYBER (12) ---
