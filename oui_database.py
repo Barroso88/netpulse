@@ -1003,6 +1003,7 @@ def classify_device(ip: str, mac: str, hostname: str, vendor: str, open_ports: l
     # 2. Cameras, Smart Home & IoT (Tapo, Kasa, Tuya, Reolink, RTSP/ONVIF, Smart Plugs, Sensors, Alexa, Home Assistant, SwitchBot)
     # MUST take precedence over vendor names like TP-Link, Xiaomi, etc. (TP-Link manufactures both routers and Tapo cameras/plugs!)
     is_smart_home_or_cam = (
+        "zemismart" in combined or "m1 hub" in combined or "m1-hub" in combined or
         "switchbot" in combined or "switch-bot" in combined or "woan" in v_lower or
         "tapo" in combined or "kasa" in combined or "camera" in combined or "câmera" in combined or
         "câmara" in combined or "cam" in combined or "webcam" in combined or "ipcam" in combined or

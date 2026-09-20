@@ -12,6 +12,7 @@ let state = {
   sortDirection: "asc",
   selectedCategory: "all",
   statusFilter: "all",
+  connectionFilter: "all",
   searchQuery: "",
   alerts: [],
   speedtests: [],
@@ -24,6 +25,7 @@ let state = {
   topology: {
     layout: "radial",
     category: "all",
+    connection: "all",
     onlineOnly: false,
     searchQuery: "",
     zoom: 1,
@@ -106,7 +108,7 @@ const BRAND_SVGS = {
 
   ubiquiti: `<svg viewBox="0 0 24 24" class="w-full h-full" fill="#0559C9"><path d="M23.1627 0h-1.4882v1.4882h1.4882zm-5.2072 10.4226V7.4409l.0007.001h2.9755v2.9762h2.9756v.9433c0 1.0906-.0927 2.3827-.306 3.3973-.1194.5672-.3004 1.1308-.5127 1.672-.2175.5537-.468 1.0841-.7408 1.5595a11.6795 11.6795 0 0 1-1.2456 1.7762l-.0253.0294-.0417.0488c-.1148.1347-.2283.2679-.3531.398a11.7612 11.7612 0 0 1-.4494.4492c-1.9046 1.8343-4.3861 2.98-6.9808 3.243-.3122.032-.939.0652-1.2519.0652-.3139-.001-.9397-.0331-1.252-.0651-2.5946-.263-5.0761-1.4097-6.9806-3.243a11.75 11.75 0 0 1-.4495-.4494c-.131-.1356-.249-.2748-.3683-.4154l-.0006-.0004-.0512-.0603a11.6576 11.6576 0 0 1-1.2456-1.7762c-.2727-.4763-.5233-1.0058-.7408-1.5595-.2123-.5414-.3933-1.1048-.5128-1.6718C.1854 13.743.0927 12.452.0927 11.3616V.1864h5.9518v10.2362s0 .7847.0099 1.0415l.0022.0599v.0004c.0127.332.0247.6575.0594.9812.098.919.3014 1.7913.7203 2.5288.1213.213.2443.42.3915.616.8953 1.1939 2.2577 2.0901 3.9573 2.3398.2022.0294.6108.0552.8149.0552.204 0 .6125-.0258.8149-.0552 1.6996-.2497 3.062-1.146 3.9573-2.3398.148-.196.2701-.403.3914-.616.419-.7375.6224-1.6095.7204-2.5288.0346-.3243.047-.6503.0594-.9831l.0022-.0584c.0099-.2568.0099-1.0415.0099-1.0415zm.7427-8.19h2.2326v2.2319h2.9764v2.9764h-2.9764V4.4654h-2.2326V2.2328Z"/></svg>`,
 
-  tuya: `<svg viewBox="0 0 24 24" class="w-full h-full"><rect width="24" height="24" rx="6" fill="#FF5A00"/><path fill="#FFFFFF" d="M11 6v4.5H8v2.5h3V17c0 1.6 1.1 2.5 2.7 2.5H16v-2.5h-1.8c-.4 0-.7-.3-.7-.7V13h2.8l-.5-2.5H13.5V6H11z"/></svg>`,
+  tuya: `<svg viewBox="0 0 48 48" class="w-full h-full rounded-xl overflow-hidden" xmlns="http://www.w3.org/2000/svg"><rect width="48" height="48" rx="10" fill="#FF5A00"/><g fill="none" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18.43 13v19.86c0 3.23 2.62 5.86 5.86 5.86h2.71"/><line x1="14.55" y1="19" x2="26.07" y2="19"/><path d="M30.77 19c0-2.6-2.1-4.7-4.7-4.7"/><path d="M35.45 19c0-5.18-4.2-9.39-9.38-9.39"/></g></svg>`,
 
   sonoff: `<svg viewBox="0 0 55 55" class="w-full h-full"><image href="data:image/png;base64,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" width="55" height="55"/></svg>`,
 
@@ -144,7 +146,7 @@ function getDeviceBrand(d) {
     { keys: ["truenas", "ixsystems"], name: "TrueNAS", svg: BRAND_SVGS.truenas },
     { keys: ["unraid", "castleserver"], name: "Unraid", svg: BRAND_SVGS.unraid },
     { keys: ["sonoff", "ewelink", "coolkit"], name: "Sonoff (eWeLink)", svg: BRAND_SVGS.ewelink },
-    { keys: ["tuya", "smart life"], name: "Tuya", svg: BRAND_SVGS.tuya },
+    { keys: ["tuya", "smart life", "zemismart", "m1 hub", "m1-hub"], name: "Tuya", svg: BRAND_SVGS.tuya },
     { keys: ["xiaomi", "aspirador", "mijia", "roborock"], name: "Xiaomi", svg: BRAND_SVGS.xiaomi },
     { keys: ["samsung", "galaxy"], name: "Samsung", svg: BRAND_SVGS.samsung },
     { keys: ["amazon", "alexa", "echo"], name: "Amazon Alexa", svg: BRAND_SVGS.amazon },
@@ -659,12 +661,21 @@ function renderKPIs() {
   }
 
   updateStatusFilterButtons();
+  updateConnectionFilterButtons();
 }
 
 // Status Filter Handler (all / online / offline)
 function setStatusFilter(filter) {
   state.statusFilter = filter;
   updateStatusFilterButtons();
+  renderCategoryPills();
+  renderDevices();
+}
+
+// Connection Filter Handler (all / wifi / ethernet)
+function setConnectionFilter(filter) {
+  state.connectionFilter = filter;
+  updateConnectionFilterButtons();
   renderCategoryPills();
   renderDevices();
 }
@@ -698,19 +709,58 @@ function updateStatusFilterButtons() {
   if (bAll) bAll.textContent = total;
   if (bOn) bOn.textContent = onlineCount;
   if (bOff) bOff.textContent = offlineCount;
+
+  updateConnectionFilterButtons();
 }
 
-// Render Category Filter Pills with Adaptive Status Filtering
+function updateConnectionFilterButtons() {
+  const allBtn = document.getElementById("conn-filter-all");
+  const wifiBtn = document.getElementById("conn-filter-wifi");
+  const ethBtn = document.getElementById("conn-filter-ethernet");
+
+  if (allBtn) {
+    allBtn.classList.toggle("active", state.connectionFilter === "all");
+    allBtn.classList.toggle("text-slate-400", state.connectionFilter !== "all");
+  }
+  if (wifiBtn) {
+    wifiBtn.classList.toggle("active", state.connectionFilter === "wifi");
+    wifiBtn.classList.toggle("text-slate-400", state.connectionFilter !== "wifi");
+  }
+  if (ethBtn) {
+    ethBtn.classList.toggle("active", state.connectionFilter === "ethernet");
+    ethBtn.classList.toggle("text-slate-400", state.connectionFilter !== "ethernet");
+  }
+
+  const total = state.devices.length;
+  const wifiCount = state.devices.filter(d => resolveConnectionType(d) === 'wifi').length;
+  const ethCount = state.devices.filter(d => resolveConnectionType(d) === 'ethernet').length;
+
+  const bAll = document.getElementById("badge-conn-all");
+  const bWifi = document.getElementById("badge-conn-wifi");
+  const bEth = document.getElementById("badge-conn-ethernet");
+
+  if (bAll) bAll.textContent = total;
+  if (bWifi) bWifi.textContent = wifiCount;
+  if (bEth) bEth.textContent = ethCount;
+}
+
+// Render Category Filter Pills with Adaptive Status and Connection Filtering
 function renderCategoryPills() {
   const container = document.getElementById("category-pills");
   if (!container) return;
 
-  // Filter device pool according to active statusFilter so counts are 100% mathematically aligned
+  // Filter device pool according to active statusFilter & connectionFilter so counts are 100% mathematically aligned
   let targetPool = state.devices;
   if (state.statusFilter === "online") {
     targetPool = state.devices.filter(d => (d.status || 'online') === 'online');
   } else if (state.statusFilter === "offline") {
     targetPool = state.devices.filter(d => (d.status || 'online') !== 'online');
+  }
+
+  if (state.connectionFilter === "wifi") {
+    targetPool = targetPool.filter(d => resolveConnectionType(d) === 'wifi');
+  } else if (state.connectionFilter === "ethernet") {
+    targetPool = targetPool.filter(d => resolveConnectionType(d) === 'ethernet');
   }
 
   // Calculate counts per category
@@ -855,6 +905,15 @@ function getFilteredDevices() {
         return false;
       }
     }
+
+    // Connection type filter (all, wifi, ethernet)
+    if (state.connectionFilter && state.connectionFilter !== "all") {
+      const connType = resolveConnectionType(dev);
+      if (connType !== state.connectionFilter) {
+        return false;
+      }
+    }
+
     // Search query filter
     if (state.searchQuery) {
       const q = state.searchQuery;
@@ -865,7 +924,9 @@ function getFilteredDevices() {
       const ports = Array.isArray(dev.open_ports) ? dev.open_ports.join(" ") : (dev.open_ports || "");
       const catMeta = CATEGORIES[dev.device_type] || {};
       const catLabel = (catMeta.label || dev.device_type || "").toLowerCase();
-      if (!ip.includes(q) && !mac.includes(q) && !name.includes(q) && !vendor.includes(q) && !String(ports).includes(q) && !catLabel.includes(q)) {
+      const connType = resolveConnectionType(dev);
+      const connLabel = connType === "ethernet" ? "cabo ethernet rj45 lan" : "wifi wireless sem fios";
+      if (!ip.includes(q) && !mac.includes(q) && !name.includes(q) && !vendor.includes(q) && !String(ports).includes(q) && !catLabel.includes(q) && !connLabel.includes(q)) {
         return false;
       }
     }
@@ -2436,6 +2497,11 @@ function handleTopologyCategory(cat) {
   renderTopologyMap();
 }
 
+function handleTopologyConnection(conn) {
+  state.topology.connection = conn;
+  renderTopologyMap();
+}
+
 function toggleTopologyOnlineOnly() {
   state.topology.onlineOnly = !state.topology.onlineOnly;
   const dot = document.getElementById("topo-online-dot");
@@ -2515,6 +2581,9 @@ function renderTopologyMap() {
 
   if (state.topology.category !== "all") {
     leafDevices = leafDevices.filter(d => (d.device_type || "unknown") === state.topology.category);
+  }
+  if (state.topology.connection && state.topology.connection !== "all") {
+    leafDevices = leafDevices.filter(d => resolveConnectionType(d) === state.topology.connection);
   }
   if (state.topology.onlineOnly) {
     leafDevices = leafDevices.filter(d => (d.status || "online") === "online");

@@ -303,6 +303,9 @@ def cleanup_and_realign_devices(conn):
             elif "home assistant" in name_lower and "google" in vendor_lower:
                 should_update = True
                 new_vendor = "Proxmox Server Solutions (Home Assistant)"
+            elif ("zemismart" in name_lower or "m1 hub" in name_lower or "tuya" in name_lower) and "tuya" not in vendor_lower:
+                should_update = True
+                new_vendor = "Tuya Smart (Zemismart IoT)"
             elif "unraid" in name_lower or "castleserver" in name_lower or mac == "34:5a:60:3a:e1:28":
                 should_update = True
                 if not name:
