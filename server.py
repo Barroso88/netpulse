@@ -304,6 +304,31 @@ class NetPulseHandler(http.server.SimpleHTTPRequestHandler):
             except Exception as e:
                 return self.send_json({"error": str(e)}, 500)
 
+        elif path.startswith("/api/devices/") and path.endswith("/delete"):
+            parts = path.split("/")
+            try:
+                device_id = int(parts[3])
+                deleted = database.delete_device(device_id)
+                if not deleted:
+                    return self.send_json({"error": "Dispositivo não encontrado"}, 404)
+                return self.send_json({"success": True, "device_id": device_id})
+            except Exception as e:
+                return self.send_json({"error": str(e)}, 500)
+
+        elif path == "/api/devices/cleanup-offline":
+            try:
+                days = int(body_data.get("days", 0))
+                keep_trusted = bool(body_data.get("keep_trusted", True))
+                keep_custom_names = bool(body_data.get("keep_custom_names", True))
+                deleted_count = database.cleanup_offline_devices(
+                    days=days,
+                    keep_trusted=keep_trusted,
+                    keep_custom_names=keep_custom_names
+                )
+                return self.send_json({"success": True, "deleted_count": deleted_count})
+            except Exception as e:
+                return self.send_json({"error": str(e)}, 500)
+
         elif path.startswith("/api/devices/") and path.endswith("/scan-ports"):
             parts = path.split("/")
             try:

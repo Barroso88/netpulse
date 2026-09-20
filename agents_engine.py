@@ -33,7 +33,7 @@ class AgentsEngine:
             database.log_agent_activity("system", "INFO", "Motor de Agentes Autónomos NetPulse iniciado com sucesso.")
             
             # Start each agent daemon thread
-            for aid in ["sentinel", "forensics", "security_auditor", "qos_sentinel", "brand_stylist"]:
+            for aid in ["sentinel", "forensics", "security_auditor", "qos_sentinel", "brand_stylist", "hygiene_keeper"]:
                 self._spawn_agent_thread(aid)
 
     def stop(self):
@@ -51,7 +51,7 @@ class AgentsEngine:
 
     def _agent_loop(self, agent_id, stop_event):
         # Initial stagger so agents don't all run simultaneously at tick 0
-        stagger = {"sentinel": 2, "qos_sentinel": 5, "forensics": 8, "security_auditor": 12, "brand_stylist": 15}
+        stagger = {"sentinel": 2, "qos_sentinel": 5, "forensics": 8, "security_auditor": 12, "brand_stylist": 15, "hygiene_keeper": 20}
         time.sleep(stagger.get(agent_id, 3))
         
         while self.running and not stop_event.is_set():
@@ -91,6 +91,8 @@ class AgentsEngine:
             self._mission_qos_sentinel(now_str)
         elif agent_id == "brand_stylist":
             self._mission_brand_stylist(now_str)
+        elif agent_id == "hygiene_keeper":
+            self._mission_hygiene_keeper(now_str)
 
     # -------------------------------------------------------------------------
     # AGENT 1: SENTINEL INTRUSION & WATCHDOG AGENT
@@ -412,6 +414,28 @@ class AgentsEngine:
             "render_mode": "Cores Originais (Sem Margens/Caixas)"
         }
         database.update_agent_config("brand_stylist", last_run=now_str, stats=stats)
+
+    # -------------------------------------------------------------------------
+    # AGENT 6: HYGIENE & SANITATION KEEPER
+    # -------------------------------------------------------------------------
+    def _mission_hygiene_keeper(self, now_str):
+        database.log_agent_activity("hygiene_keeper", "INFO", "A verificar higiene de rede e dispositivos inativos...")
+        try:
+            # Auto-purge untrusted devices inactive for > 30 days, keeping trusted and customized devices intact
+            deleted = database.cleanup_offline_devices(days=30, keep_trusted=True, keep_custom_names=True)
+            if deleted > 0:
+                database.log_agent_activity("hygiene_keeper", "INFO", f"Higiene concluída: {deleted} dispositivos inativos (>30 dias) foram purgados com sucesso. Confiáveis preservados.")
+            else:
+                database.log_agent_activity("hygiene_keeper", "INFO", "Inventário higienizado: nenhum dispositivo offline requer purga (confiáveis 100% seguros).")
+
+            stats = {
+                "last_purged_count": deleted,
+                "policy": "Preservar Confiáveis & Nomes Customizados (> 30 dias)",
+                "last_run": now_str
+            }
+            database.update_agent_config("hygiene_keeper", last_run=now_str, stats=stats)
+        except Exception as e:
+            database.log_agent_activity("hygiene_keeper", "ERROR", f"Falha na rotina de higiene: {e}")
 
 # Global Singleton
 engine = AgentsEngine()

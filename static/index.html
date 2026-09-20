@@ -48,7 +48,7 @@
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <link rel="stylesheet" href="/styles.css?v=10.8">
+  <link rel="stylesheet" href="/styles.css?v=10.9">
 </head>
 <body class="bg-darkbg text-slate-100 min-h-screen font-sans antialiased selection:bg-cyan-500 selection:text-black">
 
@@ -508,6 +508,16 @@
                 <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400"></i>
               </div>
             </div>
+
+            <!-- Clean Offline Devices Button -->
+            <button 
+              id="btn-cleanup-offline"
+              onclick="openCleanupModal()"
+              class="px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 hover:text-rose-200 border border-rose-500/30 hover:border-rose-500/50 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer active:scale-95 flex-shrink-0"
+              title="Limpar dispositivos offline antigos ou indesejados (preserva os confiáveis)">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5 text-rose-400"></i>
+              <span class="hidden sm:inline">Limpar Offline</span>
+            </button>
 
           </div>
         </div>
@@ -1070,10 +1080,15 @@
 
       <!-- Modal Footer -->
       <div class="p-4 border-t border-slate-800 flex items-center justify-between bg-slate-950/80">
-        <button onclick="closeDeviceModal()" class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 font-semibold transition">
-          Fechar
-        </button>
-        <button onclick="saveDeviceModalDetails()" class="px-5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold shadow-lg shadow-cyan-500/20 transition active:scale-95">
+        <div class="flex items-center gap-2">
+          <button onclick="closeDeviceModal()" class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 font-semibold transition text-xs cursor-pointer">
+            Fechar
+          </button>
+          <button onclick="confirmDeleteCurrentDevice()" class="px-3.5 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 border border-rose-500/30 text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer active:scale-95" title="Eliminar ou esquecer este dispositivo da base de dados">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Esquecer
+          </button>
+        </div>
+        <button onclick="saveDeviceModalDetails()" class="px-5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold shadow-lg shadow-cyan-500/20 transition active:scale-95 text-xs cursor-pointer">
           Gravar Alterações
         </button>
       </div>
@@ -1132,10 +1147,110 @@
         </div>
       </div>
 
-      <div class="flex items-center justify-end gap-2 pt-2">
-        <button onclick="closeEditModal()" class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-semibold transition">Cancelar</button>
-        <button onclick="saveDeviceDetails()" class="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold transition">Gravar Alterações</button>
+      <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-800/80">
+        <button onclick="deleteDeviceFromEditModal()" class="px-3.5 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 border border-rose-500/30 text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer active:scale-95" title="Eliminar ou esquecer este dispositivo da base de dados">
+          <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Esquecer
+        </button>
+        <div class="flex items-center gap-2">
+          <button onclick="closeEditModal()" class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-semibold transition cursor-pointer">Cancelar</button>
+          <button onclick="saveDeviceDetails()" class="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold transition cursor-pointer">Gravar Alterações</button>
+        </div>
       </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: CLEANUP OFFLINE DEVICES                                            -->
+  <!-- ========================================================================= -->
+  <div id="modal-cleanup-offline" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+    <div class="bg-darkcard border border-darkborder w-full max-w-lg rounded-2xl p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200">
+      
+      <!-- Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800/80">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400">
+            <i data-lucide="trash-2" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm text-white">Saneamento de Dispositivos Offline</h3>
+            <p class="text-[11px] text-slate-400">Higienize o inventário de rede removendo nós inativos.</p>
+          </div>
+        </div>
+        <button onclick="closeCleanupModal()" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800/60 transition cursor-pointer">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Live Counters Card -->
+      <div class="grid grid-cols-3 gap-2.5 p-3 rounded-xl bg-slate-950/70 border border-slate-800 text-center">
+        <div class="p-2 rounded-lg bg-slate-900/50">
+          <div class="text-[10px] text-slate-400 uppercase font-semibold">Total Offline</div>
+          <div id="cleanup-stat-total" class="text-base font-extrabold font-mono text-slate-200 mt-0.5">0</div>
+        </div>
+        <div class="p-2 rounded-lg bg-rose-950/20 border border-rose-500/20">
+          <div class="text-[10px] text-rose-300 uppercase font-semibold">Candidatos</div>
+          <div id="cleanup-stat-untrusted" class="text-base font-extrabold font-mono text-rose-400 mt-0.5">0</div>
+        </div>
+        <div class="p-2 rounded-lg bg-emerald-950/20 border border-emerald-500/20">
+          <div class="text-[10px] text-emerald-300 uppercase font-semibold">Confiáveis (Seguros)</div>
+          <div id="cleanup-stat-trusted" class="text-base font-extrabold font-mono text-emerald-400 mt-0.5">0</div>
+        </div>
+      </div>
+
+      <!-- Form Controls -->
+      <div class="space-y-4 text-xs">
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1.5">Período de Inatividade a Purgar</label>
+          <select id="cleanup-days-select" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-white focus:outline-none focus:border-rose-500 cursor-pointer text-xs">
+            <option value="0">Todos os dispositivos offline atualmente (Imediato)</option>
+            <option value="7">Apenas offline há mais de 7 dias</option>
+            <option value="15">Apenas offline há mais de 15 dias</option>
+            <option value="30" selected>Apenas offline há mais de 30 dias (Recomendado)</option>
+          </select>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80 space-y-3">
+          <label class="flex items-start gap-2.5 cursor-pointer">
+            <input type="checkbox" id="cleanup-keep-trusted" checked class="mt-0.5 rounded border-slate-700 text-cyan-500 focus:ring-cyan-500 bg-slate-950">
+            <div>
+              <span class="font-semibold text-slate-200 flex items-center gap-1.5">
+                <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i> Preservar Dispositivos Confiáveis (Recomendado)
+              </span>
+              <p class="text-[11px] text-slate-400 mt-0.5 leading-relaxed">
+                Garante que todos os equipamentos que marcou com o selo de confiança nunca serão eliminados.
+              </p>
+            </div>
+          </label>
+
+          <label class="flex items-start gap-2.5 cursor-pointer">
+            <input type="checkbox" id="cleanup-keep-custom-names" checked class="mt-0.5 rounded border-slate-700 text-cyan-500 focus:ring-cyan-500 bg-slate-950">
+            <div>
+              <span class="font-semibold text-slate-200 flex items-center gap-1.5">
+                <i data-lucide="tag" class="w-3.5 h-3.5 text-cyan-400"></i> Preservar Nomes Personalizados
+              </span>
+              <p class="text-[11px] text-slate-400 mt-0.5 leading-relaxed">
+                Protege equipamentos que tenham apelidos ou nomes manuais atribuídos por si.
+              </p>
+            </div>
+          </label>
+        </div>
+
+        <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-200/90 flex items-start gap-2">
+          <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5"></i>
+          <span>Os nós purgados são removidos do histórico de inventário e alertas. Caso voltem a ligar-se à rede, serão detetados e reintroduzidos automaticamente.</span>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-800/80">
+        <button onclick="closeCleanupModal()" class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-semibold transition cursor-pointer">
+          Cancelar
+        </button>
+        <button id="btn-submit-cleanup" onclick="submitCleanupOffline()" class="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-lg shadow-rose-900/30 cursor-pointer active:scale-95">
+          <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Executar Limpeza
+        </button>
+      </div>
+
     </div>
   </div>
 
@@ -1313,6 +1428,6 @@
   <!-- Toast Notification Container -->
   <div id="toast-container" class="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 left-4 sm:left-auto z-50 flex flex-col gap-2 pointer-events-none"></div>
 
-  <script src="/app.js?v=10.8"></script>
+  <script src="/app.js?v=10.9"></script>
 </body>
 </html>

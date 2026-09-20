@@ -194,7 +194,8 @@ def init_db():
         ("forensics", "Forense mDNS & SSDP", "Reconhecimento e identificação profunda de modelos e fabricantes reais via broadcast.", "discovery", 1, 90),
         ("security_auditor", "Auditor de Vulnerabilidades", "Auditoria contínua de portas expostas e cálculo da pontuação de segurança da rede.", "security", 1, 120),
         ("qos_sentinel", "Sentinela de Desempenho & QoS", "Monitorização de jitter, latência do router e estabilidade do operador MEO/Altice.", "network", 1, 45),
-        ("brand_stylist", "Agente de Identidade Visual & Marcas", "Audita e cataloga marcas oficiais de hardware, mantendo a renderização de logótipos nas cores autênticas e sem limites.", "visual", 1, 60)
+        ("brand_stylist", "Agente de Identidade Visual & Marcas", "Audita e cataloga marcas oficiais de hardware, mantendo a renderização de logótipos nas cores autênticas e sem limites.", "visual", 1, 60),
+        ("hygiene_keeper", "Agente de Higiene & Saneamento", "Audita e remove automaticamente dispositivos temporários inativos há mais de 30 dias, mantendo os confiáveis protegidos.", "maintenance", 1, 3600)
     ]
     for aid, name, desc, cat, enabled, interval in default_agents:
         if conn.is_pg:
@@ -675,3 +676,66 @@ def get_recent_agent_logs(limit=100, agent_id=None):
     res = cursor.fetchall()
     conn.close()
     return res
+
+def delete_device(device_id):
+    """
+    Permanently deletes a device and its associated alerts by ID.
+    Returns True if deleted, False if device not found.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT mac FROM devices WHERE id = ?", (device_id,))
+    row = cursor.fetchone()
+    if not row:
+        conn.close()
+        return False
+    mac = row["mac"]
+    cursor.execute("DELETE FROM alerts WHERE device_mac = ?", (mac,))
+    cursor.execute("DELETE FROM devices WHERE id = ?", (device_id,))
+    conn.commit()
+    conn.close()
+    return True
+
+def cleanup_offline_devices(days=0, keep_trusted=True, keep_custom_names=True):
+    """
+    Purges stale offline devices from the database.
+    - days: Only purge devices offline for > X days (0 = purge all offline immediately).
+    - keep_trusted: If True, devices marked as is_trusted = 1 are NEVER deleted.
+    - keep_custom_names: If True, devices with user custom_names are preserved.
+    Returns: int (number of deleted devices).
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    conditions = ["status = 'offline'"]
+    params = []
+
+    if keep_trusted:
+        conditions.append("(is_trusted = 0 OR is_trusted IS NULL)")
+
+    if keep_custom_names:
+        conditions.append("(custom_name IS NULL OR trim(custom_name) = '')")
+
+    if days > 0:
+        if conn.is_pg:
+            conditions.append(f"last_seen < NOW() - INTERVAL '{int(days)} days'")
+        else:
+            conditions.append(f"datetime(last_seen) < datetime('now', '-{int(days)} days')")
+
+    where_clause = " AND ".join(conditions)
+
+    # 1. Count devices matching the criteria
+    cursor.execute(f"SELECT COUNT(*) as cnt FROM devices WHERE {where_clause}", params)
+    res = cursor.fetchone()
+    count = res["cnt"] if res else 0
+
+    if count > 0:
+        # Also clean up alerts belonging to these deleted devices
+        cursor.execute(f"DELETE FROM alerts WHERE device_mac IN (SELECT mac FROM devices WHERE {where_clause})", params)
+        # Delete devices
+        cursor.execute(f"DELETE FROM devices WHERE {where_clause}", params)
+        conn.commit()
+
+    conn.close()
+    return count
+

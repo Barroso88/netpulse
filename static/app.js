@@ -1566,6 +1566,127 @@ async function trustDevice(deviceId) {
   }
 }
 
+// Device Deletion / Forget Logic
+async function deleteDevice(deviceId, confirmFirst = true) {
+  if (!deviceId) return;
+  const dev = state.devices.find(d => String(d.id) === String(deviceId));
+  const devName = dev ? (dev.custom_name || dev.hostname || dev.ip || "Dispositivo") : "Dispositivo";
+  
+  if (confirmFirst) {
+    const ok = confirm(`Tem a certeza que deseja esquecer/remover o dispositivo "${devName}" da base de dados?\n\nSe o dispositivo voltar a comunicar na rede local, será automaticamente redescoberto como um novo nó.`);
+    if (!ok) return;
+  }
+
+  try {
+    const res = await fetch(`/api/devices/${deviceId}/delete`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" }
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) {
+      showToast(data.error || "Erro ao eliminar dispositivo", "error");
+      return;
+    }
+    
+    closeDeviceModal();
+    closeEditModal();
+    showToast(`Dispositivo "${devName}" removido com sucesso.`, "success");
+    state._devicesSignature = null;
+    await fetchDevices(false);
+  } catch (err) {
+    showToast("Erro ao eliminar dispositivo: " + err, "error");
+  }
+}
+
+function confirmDeleteCurrentDevice() {
+  if (currentModalDeviceId) {
+    deleteDevice(currentModalDeviceId, true);
+  }
+}
+
+function deleteDeviceFromEditModal() {
+  const id = document.getElementById("edit-device-id")?.value;
+  if (id) {
+    deleteDevice(id, true);
+  }
+}
+
+// Bulk Offline Device Cleanup Logic
+function openCleanupModal() {
+  const modal = document.getElementById("modal-cleanup-offline");
+  if (!modal) return;
+  
+  const offlineTotal = state.devices.filter(d => d.status === "offline").length;
+  const offlineUntrusted = state.devices.filter(d => d.status === "offline" && !d.is_trusted && (!d.custom_name || !d.custom_name.trim())).length;
+  const offlineTrusted = state.devices.filter(d => d.status === "offline" && d.is_trusted).length;
+  
+  const totalEl = document.getElementById("cleanup-stat-total");
+  const untrustedEl = document.getElementById("cleanup-stat-untrusted");
+  const trustedEl = document.getElementById("cleanup-stat-trusted");
+  
+  if (totalEl) totalEl.textContent = offlineTotal;
+  if (untrustedEl) untrustedEl.textContent = offlineUntrusted;
+  if (trustedEl) trustedEl.textContent = offlineTrusted;
+  
+  modal.classList.remove("hidden");
+  if (window.lucide) lucide.createIcons();
+}
+
+function closeCleanupModal() {
+  const modal = document.getElementById("modal-cleanup-offline");
+  if (modal) modal.classList.add("hidden");
+}
+
+async function submitCleanupOffline() {
+  const daysVal = parseInt(document.getElementById("cleanup-days-select")?.value || "0", 10);
+  const keepTrusted = document.getElementById("cleanup-keep-trusted")?.checked ?? true;
+  const keepCustomNames = document.getElementById("cleanup-keep-custom-names")?.checked ?? true;
+  
+  const btn = document.getElementById("btn-submit-cleanup");
+  const origHtml = btn ? btn.innerHTML : "";
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> A higienizar...`;
+    if (window.lucide) lucide.createIcons();
+  }
+  
+  try {
+    const res = await fetch("/api/devices/cleanup-offline", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        days: daysVal,
+        keep_trusted: keepTrusted,
+        keep_custom_names: keepCustomNames
+      })
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) {
+      showToast(data.error || "Erro ao executar saneamento", "error");
+      return;
+    }
+    
+    const count = data.deleted_count || 0;
+    closeCleanupModal();
+    if (count > 0) {
+      showToast(`Higiene concluída: ${count} dispositivo(s) offline removido(s). Confiáveis protegidos.`, "success");
+    } else {
+      showToast("Nenhum dispositivo offline elegível para remoção com os critérios selecionados.", "info");
+    }
+    
+    state._devicesSignature = null;
+    await fetchDevices(false);
+  } catch (err) {
+    showToast("Erro ao executar saneamento: " + err, "error");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = origHtml;
+      if (window.lucide) lucide.createIcons();
+    }
+  }
+}
+
 // Router Latency & WAN Health
 async function fetchRouterLatency(silent = false) {
   try {
