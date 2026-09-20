@@ -239,27 +239,31 @@ class NetPulseHandler(http.server.SimpleHTTPRequestHandler):
             if not AUTH_ENABLED:
                 return self.send_json({"success": True, "auth_required": False})
 
-            # Rate limit protection against brute-force (max 10 attempts per minute per IP)
-            client_ip = self.client_address[0]
-            now = time.time()
-            attempts = [t for t in LOGIN_ATTEMPTS.get(client_ip, []) if now - t < 60]
-            if len(attempts) >= 10:
-                return self.send_json({"error": "Demasiadas tentativas incorretas. Aguarde 1 minuto."}, 429)
+            try:
+                # Rate limit protection against brute-force (max 10 attempts per minute per IP)
+                # Respect X-Forwarded-For when behind reverse proxies (Nginx, Cloudflare, Swag)
+                client_ip = self.headers.get("X-Forwarded-For", "").split(",")[0].strip() or self.client_address[0]
+                now = time.time()
+                attempts = [t for t in LOGIN_ATTEMPTS.get(client_ip, []) if now - t < 60]
+                if len(attempts) >= 10:
+                    return self.send_json({"error": "Demasiadas tentativas incorretas. Aguarde 1 minuto."}, 429)
 
-            pwd = body_data.get("password", "")
-            if pwd == AUTH_PASSWORD:
-                token = secrets.token_hex(24)
-                ACTIVE_SESSIONS[token] = now + (86400 * 30)
-                LOGIN_ATTEMPTS[client_ip] = []
-                cookie_val = f"netpulse_session={token}; Path=/; Max-Age={86400 * 30}; SameSite=Lax"
-                return self.send_json(
-                    {"success": True, "token": token},
-                    extra_headers={"Set-Cookie": cookie_val}
-                )
-            else:
-                attempts.append(now)
-                LOGIN_ATTEMPTS[client_ip] = attempts
-                return self.send_json({"error": "Palavra-passe incorreta"}, 401)
+                pwd = body_data.get("password", "")
+                if pwd == AUTH_PASSWORD:
+                    token = secrets.token_hex(24)
+                    ACTIVE_SESSIONS[token] = now + (86400 * 30)
+                    LOGIN_ATTEMPTS[client_ip] = []
+                    cookie_val = f"netpulse_session={token}; Path=/; Max-Age={86400 * 30}; SameSite=Lax"
+                    return self.send_json(
+                        {"success": True, "token": token},
+                        extra_headers={"Set-Cookie": cookie_val}
+                    )
+                else:
+                    attempts.append(now)
+                    LOGIN_ATTEMPTS[client_ip] = attempts
+                    return self.send_json({"error": "Palavra-passe incorreta"}, 401)
+            except Exception as e:
+                return self.send_json({"error": f"Erro interno ao autenticar: {e}"}, 500)
 
         elif path == "/api/auth/logout":
             cookie_val = "netpulse_session=; Path=/; Max-Age=0; SameSite=Lax"
@@ -397,6 +401,12 @@ class NetPulseHandler(http.server.SimpleHTTPRequestHandler):
             self.send_error(500, f"Erro ao ler ficheiro: {e}")
 
 def background_monitor():
+    # Initial scan runs immediately in background so HTTP server is never blocked on boot
+    try:
+        network_scanner.scan_network_full(quick=True)
+    except Exception as e:
+        print(f"[NetPulse] Aviso durante varrimento inicial: {e}")
+
     scan_tick = 0
     while True:
         try:
@@ -422,12 +432,25 @@ def background_monitor():
 
 def main():
     database.init_db()
-    print("[NetPulse] Inicializando base de dados e inventário de rede...")
-    try:
-        network_scanner.scan_network_full(quick=True)
-    except Exception as e:
-        print(f"[NetPulse] Aviso durante varrimento inicial: {e}")
 
+    # 1. Bind and start HTTP server FIRST so web endpoints and reverse proxy respond immediately!
+    server = http.server.ThreadingHTTPServer(("0.0.0.0", PORT), NetPulseHandler)
+    engine_name = "🐘 PostgreSQL" if database.is_postgres_active() else "🗄️ SQLite"
+    auth_status = "🔒 Ativa (Palavra-passe configurada)" if AUTH_ENABLED else "🔓 Desativada (Acesso Livre na LAN)"
+    
+    print(f"============================================================")
+    print(f"  ⚡ NetPulse - Network Analyzer & Sentinel WebApp")
+    print(f"  💾 Motor de Base de Dados: {engine_name}")
+    print(f"  🛡️ Autenticação de Segurança: {auth_status}")
+    print(f"  🚀 Servidor ativo em: http://0.0.0.0:{PORT}")
+    try:
+        local_ip = network_scanner.get_local_interface_and_ip()[1]
+        print(f"  🌐 Acessível na rede em: http://{local_ip}:{PORT}")
+    except Exception:
+        pass
+    print(f"============================================================")
+
+    # 2. Start Autonomous AI Agents & Background Discovery Engine in daemon threads
     try:
         agents_engine.get_engine().start()
         print("[NetPulse] 🤖 Agentes Autónomos iniciados com sucesso.")
@@ -437,18 +460,6 @@ def main():
     bg_thread = threading.Thread(target=background_monitor, daemon=True)
     bg_thread.start()
 
-    server = http.server.ThreadingHTTPServer(("0.0.0.0", PORT), NetPulseHandler)
-    engine_name = "🐘 PostgreSQL" if database.is_postgres_active() else "🗄️ SQLite"
-    auth_status = "🔒 Ativa (Palavra-passe configurada)" if AUTH_ENABLED else "🔓 Desativada (Acesso Livre na LAN)"
-    
-    print(f"============================================================")
-    print(f"  ⚡ NetPulse - Network Analyzer & Sentinel WebApp")
-    print(f"  💾 Motor de Base de Dados: {engine_name}")
-    print(f"  🛡️ Autenticação de Segurança: {auth_status}")
-    print(f"  🚀 Servidor ativo em: http://localhost:{PORT}")
-    print(f"  🌐 Acessível na rede em: http://{network_scanner.get_local_interface_and_ip()[1]}:{PORT}")
-    print(f"============================================================")
-    
     try:
         server.serve_forever()
     except KeyboardInterrupt:

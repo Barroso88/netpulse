@@ -289,7 +289,18 @@ async function handleLoginSubmit(e) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ password: inp.value })
     });
-    const data = await res.json();
+
+    let data = {};
+    try {
+      data = await res.json();
+    } catch (_) {
+      if (!res.ok) {
+        throw new Error(res.status === 502 || res.status === 503 || res.status === 504 
+          ? "O servidor NetPulse está a reiniciar. Aguarde alguns instantes e tente novamente."
+          : `Erro de comunicação com o servidor (${res.status}).`);
+      }
+    }
+
     if (res.ok && data.success) {
       state.isAuthenticated = true;
       hideAuthModal();
@@ -305,7 +316,7 @@ async function handleLoginSubmit(e) {
     }
   } catch (err) {
     if (errMsg) {
-      errMsg.textContent = "Erro ao contactar o servidor.";
+      errMsg.textContent = err.message || "Erro ao contactar o servidor.";
       errMsg.classList.remove("hidden");
     }
   } finally {

@@ -340,15 +340,16 @@ def migrate_sqlite_to_postgres(sqlite_path, pg_wrapper):
         # Migrate devices
         sq_cur.execute("SELECT * FROM devices")
         for d in sq_cur.fetchall():
+            row = dict(d)
             cur.execute("""
                 INSERT INTO devices (id, ip, mac, hostname, custom_name, vendor, device_type, status, is_trusted, is_new, first_seen, last_seen, open_ports, notes, is_custom_type, connection_type)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT (mac) DO NOTHING
             """, (
-                d["id"], d["ip"], d["mac"], d["hostname"], d["custom_name"], d["vendor"],
-                d["device_type"], d["status"], d["is_trusted"], d["is_new"],
-                d["first_seen"], d["last_seen"], d["open_ports"], d["notes"],
-                d.get("is_custom_type", 0), d.get("connection_type", "auto")
+                row["id"], row["ip"], row["mac"], row["hostname"], row["custom_name"], row["vendor"],
+                row["device_type"], row["status"], row["is_trusted"], row["is_new"],
+                row["first_seen"], row["last_seen"], row["open_ports"], row["notes"],
+                row.get("is_custom_type", 0), row.get("connection_type", "auto")
             ))
 
         # Reset devices sequence

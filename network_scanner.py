@@ -156,16 +156,29 @@ def get_network_info() -> dict:
         "interface": iface
     }
 
-def resolve_hostname(ip: str, timeout: float = 0.5) -> str:
-    """Performs reverse DNS lookup with quick timeout."""
-    try:
-        host, _, _ = socket.gethostbyaddr(ip)
-        if host and host != ip:
-            # Clean local suffixes like .lan, .local, .home
-            return host
-    except Exception:
-        pass
-    return ""
+_HOSTNAME_CACHE = {}
+
+def resolve_hostname(ip: str, timeout: float = 0.4) -> str:
+    """Performs reverse DNS lookup with caching and non-blocking timeout."""
+    if ip in _HOSTNAME_CACHE:
+        return _HOSTNAME_CACHE[ip]
+
+    res = [""]
+    def _worker():
+        try:
+            host, _, _ = socket.gethostbyaddr(ip)
+            if host and host != ip:
+                res[0] = host
+        except Exception:
+            pass
+
+    t = threading.Thread(target=_worker, daemon=True)
+    t.start()
+    t.join(timeout=timeout)
+
+    hostname = res[0]
+    _HOSTNAME_CACHE[ip] = hostname
+    return hostname
 
 def probe_host_silent(ip: str):
     """Sends a quick TCP syn to common ports to wake up dormant devices and populate ARP cache."""
