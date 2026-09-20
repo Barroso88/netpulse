@@ -118,7 +118,8 @@ def init_db():
         last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         open_ports TEXT DEFAULT '[]',
         notes TEXT DEFAULT '',
-        is_custom_type INTEGER DEFAULT 0
+        is_custom_type INTEGER DEFAULT 0,
+        connection_type TEXT DEFAULT 'auto'
     );
     """)
 
@@ -213,6 +214,13 @@ def init_db():
     # Migration: Add is_custom_type column if missing
     try:
         cursor.execute("ALTER TABLE devices ADD COLUMN is_custom_type INTEGER DEFAULT 0")
+        conn.commit()
+    except Exception:
+        pass
+
+    # Migration: Add connection_type column if missing
+    try:
+        cursor.execute("ALTER TABLE devices ADD COLUMN connection_type TEXT DEFAULT 'auto'")
         conn.commit()
     except Exception:
         pass
@@ -315,13 +323,14 @@ def migrate_sqlite_to_postgres(sqlite_path, pg_wrapper):
         sq_cur.execute("SELECT * FROM devices")
         for d in sq_cur.fetchall():
             cur.execute("""
-                INSERT INTO devices (id, ip, mac, hostname, custom_name, vendor, device_type, status, is_trusted, is_new, first_seen, last_seen, open_ports, notes)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO devices (id, ip, mac, hostname, custom_name, vendor, device_type, status, is_trusted, is_new, first_seen, last_seen, open_ports, notes, is_custom_type, connection_type)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT (mac) DO NOTHING
             """, (
                 d["id"], d["ip"], d["mac"], d["hostname"], d["custom_name"], d["vendor"],
                 d["device_type"], d["status"], d["is_trusted"], d["is_new"],
-                d["first_seen"], d["last_seen"], d["open_ports"], d["notes"]
+                d["first_seen"], d["last_seen"], d["open_ports"], d["notes"],
+                d.get("is_custom_type", 0), d.get("connection_type", "auto")
             ))
 
         # Reset devices sequence
@@ -456,7 +465,7 @@ def get_all_devices():
     conn.close()
     return devices
 
-def update_device_details(device_id, custom_name=None, device_type=None, is_trusted=None, notes=None):
+def update_device_details(device_id, custom_name=None, device_type=None, is_trusted=None, notes=None, connection_type=None):
     conn = get_db_connection()
     cursor = conn.cursor()
     fields = []
@@ -476,6 +485,9 @@ def update_device_details(device_id, custom_name=None, device_type=None, is_trus
     if notes is not None:
         fields.append("notes = ?")
         values.append(notes)
+    if connection_type is not None:
+        fields.append("connection_type = ?")
+        values.append(connection_type)
     
     if fields:
         values.append(device_id)

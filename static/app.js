@@ -517,7 +517,7 @@ async function fetchDevices(silent = false) {
     const newDevices = data.devices || [];
 
     // Serialize state signature to skip DOM thrashing when nothing changed
-    const stateSig = newDevices.map(d => `${d.id}:${d.ip}:${d.status}:${d.is_new}:${d.custom_name || ''}`).join("|");
+    const stateSig = newDevices.map(d => `${d.id}:${d.ip}:${d.status}:${d.is_new}:${d.custom_name || ''}:${d.device_type || ''}:${d.connection_type || ''}`).join("|");
     const hasChanged = (state._devicesSignature !== stateSig);
 
     state.devices = newDevices;
@@ -909,6 +909,39 @@ function getCategoryBadge(type) {
   `;
 }
 
+// Resolve physical connection type (Wi-Fi vs Ethernet) with automatic smart inference and user override
+function resolveConnectionType(dev) {
+  if (dev.connection_type && dev.connection_type !== 'auto') {
+    return dev.connection_type;
+  }
+  const isGateway = (dev.ip === state.networkInfo.gateway_ip);
+  const isSelf = (dev.ip === state.networkInfo.local_ip);
+  if (isGateway || isSelf || (dev.ip && dev.ip.endsWith(".1")) || dev.device_type === "router") {
+    return "ethernet";
+  }
+  if (dev.device_type === "mobile" || dev.device_type === "iot") {
+    return "wifi";
+  }
+  const combined = `${dev.hostname || ''} ${dev.custom_name || ''} ${dev.vendor || ''}`.toLowerCase();
+  if (combined.includes("eth") || combined.includes("lan") || combined.includes("cabo") || combined.includes("rj45") || combined.includes("server") || combined.includes("unraid") || combined.includes("nas") || combined.includes("switch")) {
+    return "ethernet";
+  }
+  if (combined.includes("wifi") || combined.includes("wlan") || combined.includes("wireless") || combined.includes("tapo") || combined.includes("shelly") || combined.includes("sonoff") || combined.includes("tuya") || combined.includes("espressif")) {
+    return "wifi";
+  }
+  return "wifi";
+}
+
+// Executive Connection Badge UI (Wi-Fi vs Ethernet Cable)
+function getConnectionBadge(dev) {
+  const type = resolveConnectionType(dev);
+  if (type === "ethernet") {
+    return `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 text-[10px] font-bold border border-blue-500/40 uppercase tracking-wide" title="Ligação: Cabo de Rede (Ethernet)"><i data-lucide="cable" class="w-3 h-3 text-blue-400"></i><span class="hidden xs:inline">Cabo</span></span>`;
+  } else {
+    return `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 text-[10px] font-bold border border-cyan-500/40 uppercase tracking-wide" title="Ligação: Wi-Fi (Sem Fios)"><i data-lucide="wifi" class="w-3 h-3 text-cyan-400"></i><span class="hidden xs:inline">Wi-Fi</span></span>`;
+  }
+}
+
 // Glassmorphic Toast Notifications
 function showToast(message, type = "info") {
   const container = document.getElementById("toast-container");
@@ -1018,6 +1051,7 @@ function renderDevices() {
                 <div class="flex items-center gap-1.5 flex-wrap sm:flex-nowrap">
                   <span class="font-bold text-white text-sm sm:text-base tracking-tight truncate">${escapeHtml(displayName)}</span>
                   ${statusBadge}
+                  ${getConnectionBadge(d)}
                   ${newBadge}
                   ${trustedBadge}
                 </div>
@@ -1180,6 +1214,10 @@ function openDeviceModal(deviceId) {
   }
 
   document.getElementById("m-dev-badge-cat").innerHTML = getCategoryBadge(dev.device_type);
+  const connBadgeEl = document.getElementById("m-dev-badge-connection");
+  if (connBadgeEl) {
+    connBadgeEl.innerHTML = getConnectionBadge(dev);
+  }
   document.getElementById("m-dev-badge-new").innerHTML = dev.is_new 
     ? `<span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/40 animate-pulse">NOVO</span>` : '';
   document.getElementById("m-dev-badge-trusted").innerHTML = dev.is_trusted 
@@ -1223,6 +1261,10 @@ function openDeviceModal(deviceId) {
   document.getElementById("m-dev-id").value = dev.id;
   document.getElementById("m-dev-input-name").value = dev.custom_name || "";
   document.getElementById("m-dev-input-type").value = dev.device_type || "unknown";
+  const connSelectEl = document.getElementById("m-dev-input-connection");
+  if (connSelectEl) {
+    connSelectEl.value = dev.connection_type || "auto";
+  }
   document.getElementById("m-dev-input-notes").value = dev.notes || "";
 
   // Show modal
@@ -1363,13 +1405,14 @@ async function saveDeviceModalDetails() {
   const id = document.getElementById("m-dev-id").value;
   const custom_name = document.getElementById("m-dev-input-name").value.trim();
   const device_type = document.getElementById("m-dev-input-type").value;
+  const connection_type = document.getElementById("m-dev-input-connection") ? document.getElementById("m-dev-input-connection").value : "auto";
   const notes = document.getElementById("m-dev-input-notes").value.trim();
 
   try {
     await fetch(`/api/devices/${id}/edit`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ custom_name, device_type, notes })
+      body: JSON.stringify({ custom_name, device_type, connection_type, notes })
     });
     closeDeviceModal();
     showToast("Detalhes do dispositivo guardados com sucesso", "success");
@@ -1392,13 +1435,14 @@ async function saveDeviceDetails() {
   const id = document.getElementById("edit-device-id").value;
   const custom_name = document.getElementById("edit-custom-name").value.trim();
   const device_type = document.getElementById("edit-device-type").value;
+  const connection_type = document.getElementById("edit-connection-type") ? document.getElementById("edit-connection-type").value : "auto";
   const notes = document.getElementById("edit-device-notes").value.trim();
 
   try {
     await fetch(`/api/devices/${id}/edit`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ custom_name, device_type, notes })
+      body: JSON.stringify({ custom_name, device_type, connection_type, notes })
     });
     closeEditModal();
     fetchDevices();

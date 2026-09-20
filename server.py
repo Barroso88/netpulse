@@ -285,7 +285,8 @@ class NetPulseHandler(http.server.SimpleHTTPRequestHandler):
                 custom_name = body_data.get("custom_name")
                 device_type = body_data.get("device_type")
                 notes = body_data.get("notes")
-                database.update_device_details(device_id, custom_name=custom_name, device_type=device_type, notes=notes)
+                connection_type = body_data.get("connection_type")
+                database.update_device_details(device_id, custom_name=custom_name, device_type=device_type, notes=notes, connection_type=connection_type)
                 return self.send_json({"success": True, "device_id": device_id})
             except Exception as e:
                 return self.send_json({"error": str(e)}, 500)
