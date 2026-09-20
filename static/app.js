@@ -932,11 +932,11 @@ function resolveConnectionType(dev) {
   return "wifi";
 }
 
-// Executive Connection Badge UI (Wi-Fi vs Ethernet Cable)
+// Executive Connection Badge UI (Wi-Fi vs Ethernet Cable RJ45)
 function getConnectionBadge(dev) {
   const type = resolveConnectionType(dev);
   if (type === "ethernet") {
-    return `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 text-[10px] font-bold border border-blue-500/40 uppercase tracking-wide" title="Ligação: Cabo de Rede (Ethernet)"><i data-lucide="cable" class="w-3 h-3 text-blue-400"></i><span class="hidden xs:inline">Cabo</span></span>`;
+    return `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 text-[10px] font-bold border border-blue-500/40 uppercase tracking-wide" title="Ligação: Cabo de Rede (Terminal RJ45)"><svg viewBox="0 0 512 512" class="w-3 h-3 fill-current text-blue-400 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M496 192h-48v-48c0-8.8-7.2-16-16-16h-48V80c0-8.8-7.2-16-16-16H144c-8.8 0-16 7.2-16 16v48H80c-8.8 0-16 7.2-16 16v48H16c-8.8 0-16 7.2-16 16v224c0 8.8 7.2 16 16 16h80V320h32v128h64V320h32v128h64V320h32v128h64V320h32v128h80c8.8 0 16-7.2 16-16V208c0-8.8-7.2-16-16-16z"/></svg><span class="hidden xs:inline">Cabo RJ45</span></span>`;
   } else {
     return `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 text-[10px] font-bold border border-cyan-500/40 uppercase tracking-wide" title="Ligação: Wi-Fi (Sem Fios)"><i data-lucide="wifi" class="w-3 h-3 text-cyan-400"></i><span class="hidden xs:inline">Wi-Fi</span></span>`;
   }
