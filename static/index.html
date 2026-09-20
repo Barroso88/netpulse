@@ -52,12 +52,20 @@
     (function() {
       try {
         var t = localStorage.getItem('netpulse_theme') || 'cyber-cyan';
+        var lightThemes = ['apple-light', 'nordic-daylight', 'mint-paper', 'sand-latte', 'lavender-cloud', 'sunset-dawn', 'silver-titanium', 'rose-quartz'];
+        var isLight = lightThemes.indexOf(t) !== -1;
         document.documentElement.setAttribute('data-theme', t);
+        document.documentElement.setAttribute('data-theme-type', isLight ? 'light' : 'dark');
+        if (isLight) {
+          document.documentElement.classList.remove('dark');
+        } else {
+          document.documentElement.classList.add('dark');
+        }
       } catch (e) {}
     })();
   </script>
 
-  <link rel="stylesheet" href="/styles.css?v=12.0">
+  <link rel="stylesheet" href="/styles.css?v=13.0">
 </head>
 <body class="bg-darkbg text-slate-100 min-h-screen font-sans antialiased selection:bg-cyan-500 selection:text-black">
 
@@ -1282,13 +1290,29 @@
           <div>
             <h3 class="font-bold text-base text-white flex items-center gap-2">
               Temas & Cores do Sistema
-              <span class="text-[10px] uppercase font-mono font-extrabold px-2 py-0.5 rounded-full bg-pink-500/20 text-pink-300 border border-pink-500/30">12 Temas</span>
+              <span class="text-[10px] uppercase font-mono font-extrabold px-2 py-0.5 rounded-full bg-pink-500/20 text-pink-300 border border-pink-500/30">20 Temas</span>
             </h3>
-            <p class="text-xs text-slate-400">Transformação completa de cores, fundos, cartões, luzes néon e gráficos.</p>
+            <p class="text-xs text-slate-400">Personalização visual com modos claros de alta luminosidade e modos escuros cyber.</p>
           </div>
         </div>
         <button onclick="closeThemesModal()" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800/60 transition cursor-pointer">
           <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Theme Mode Filter Pills (Todos, Claros, Escuros) -->
+      <div class="flex items-center gap-1.5 p-1 rounded-xl bg-slate-950/80 border border-slate-800/80 text-xs flex-shrink-0">
+        <button id="theme-tab-all" onclick="filterThemes('all')" class="theme-mode-pill active px-3 py-1.5 rounded-lg font-semibold text-xs transition-all flex items-center gap-1.5 cursor-pointer bg-slate-800 text-white">
+          <i data-lucide="layers" class="w-3.5 h-3.5 text-pink-400"></i>
+          <span>Todos (20)</span>
+        </button>
+        <button id="theme-tab-light" onclick="filterThemes('light')" class="theme-mode-pill px-3 py-1.5 rounded-lg font-semibold text-xs transition-all flex items-center gap-1.5 text-slate-400 hover:text-amber-300 cursor-pointer">
+          <i data-lucide="sun" class="w-3.5 h-3.5 text-amber-400"></i>
+          <span>Claros & Diurnos (8)</span>
+        </button>
+        <button id="theme-tab-dark" onclick="filterThemes('dark')" class="theme-mode-pill px-3 py-1.5 rounded-lg font-semibold text-xs transition-all flex items-center gap-1.5 text-slate-400 hover:text-cyan-300 cursor-pointer">
+          <i data-lucide="moon" class="w-3.5 h-3.5 text-cyan-400"></i>
+          <span>Escuros & Cyber (12)</span>
         </button>
       </div>
 
@@ -1485,6 +1509,6 @@
   <!-- Toast Notification Container -->
   <div id="toast-container" class="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 left-4 sm:left-auto z-50 flex flex-col gap-2 pointer-events-none"></div>
 
-  <script src="/app.js?v=12.0"></script>
+  <script src="/app.js?v=13.0"></script>
 </body>
 </html>

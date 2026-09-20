@@ -353,13 +353,97 @@ async function checkAuthStatus() {
 }
 
 // =============================================================================
-// GLOBAL THEME ENGINE (12 EXECUTIVE THEMES)
+// GLOBAL THEME ENGINE (20 COMPLETE THEMES: 8 LIGHT + 12 DARK)
 // =============================================================================
 const APP_THEMES = [
+  // --- TEMAS CLAROS & DIURNOS (8) ---
+  {
+    id: "apple-light",
+    name: "Cupertino Studio",
+    tagline: "Apple Minimalista Claro",
+    mode: "light",
+    primary: "#0284c7",
+    bg: "#f8fafc",
+    card: "#ffffff",
+    swatches: ["#f8fafc", "#ffffff", "#0284c7", "#38bdf8"]
+  },
+  {
+    id: "nordic-daylight",
+    name: "Nordic Daylight",
+    tagline: "Azul Glaciar Diurno",
+    mode: "light",
+    primary: "#0ea5e9",
+    bg: "#f0f9ff",
+    card: "#ffffff",
+    swatches: ["#f0f9ff", "#ffffff", "#0ea5e9", "#7dd3fc"]
+  },
+  {
+    id: "mint-paper",
+    name: "Mint Fresh",
+    tagline: "Esmeralda & Papel Menta",
+    mode: "light",
+    primary: "#059669",
+    bg: "#f0fdf4",
+    card: "#ffffff",
+    swatches: ["#f0fdf4", "#ffffff", "#059669", "#34d399"]
+  },
+  {
+    id: "sand-latte",
+    name: "Warm Sand & Latte",
+    tagline: "Dourado Linho Aveludado",
+    mode: "light",
+    primary: "#d97706",
+    bg: "#fefce8",
+    card: "#ffffff",
+    swatches: ["#fefce8", "#ffffff", "#d97706", "#f59e0b"]
+  },
+  {
+    id: "lavender-cloud",
+    name: "Lavender Cloud",
+    tagline: "Lilás Pastel & Ametista",
+    mode: "light",
+    primary: "#7c3aed",
+    bg: "#faf5ff",
+    card: "#ffffff",
+    swatches: ["#faf5ff", "#ffffff", "#7c3aed", "#c084fc"]
+  },
+  {
+    id: "sunset-dawn",
+    name: "Sunset Dawn",
+    tagline: "Alvorada Coral Pêssego",
+    mode: "light",
+    primary: "#ea580c",
+    bg: "#fff7ed",
+    card: "#ffffff",
+    swatches: ["#fff7ed", "#ffffff", "#ea580c", "#fb923c"]
+  },
+  {
+    id: "silver-titanium",
+    name: "Tech Titanium",
+    tagline: "Titânio & Ciano Técnico",
+    mode: "light",
+    primary: "#0891b2",
+    bg: "#f1f5f9",
+    card: "#ffffff",
+    swatches: ["#f1f5f9", "#ffffff", "#0891b2", "#06b6d4"]
+  },
+  {
+    id: "rose-quartz",
+    name: "Rose Quartz",
+    tagline: "Cristal Blush & Framboesa",
+    mode: "light",
+    primary: "#e11d48",
+    bg: "#fff1f2",
+    card: "#ffffff",
+    swatches: ["#fff1f2", "#ffffff", "#e11d48", "#f43f5e"]
+  },
+
+  // --- TEMAS ESCUROS & CYBER (12) ---
   {
     id: "cyber-cyan",
     name: "Cyber Cyan",
     tagline: "Padrão Aeroespacial (Original)",
+    mode: "dark",
     primary: "#06b6d4",
     bg: "#060911",
     card: "#101726",
@@ -369,6 +453,7 @@ const APP_THEMES = [
     id: "matrix-emerald",
     name: "Matrix Emerald",
     tagline: "Terminal Hacker Néon",
+    mode: "dark",
     primary: "#10b981",
     bg: "#030c06",
     card: "#081d11",
@@ -378,6 +463,7 @@ const APP_THEMES = [
     id: "tokyo-night",
     name: "Tokyo Night",
     tagline: "Shibuya Neon Glow",
+    mode: "dark",
     primary: "#a855f7",
     bg: "#0c0a18",
     card: "#17132b",
@@ -387,6 +473,7 @@ const APP_THEMES = [
     id: "dracula",
     name: "Dracula",
     tagline: "Dark Slate Vampírico",
+    mode: "dark",
     primary: "#bd93f9",
     bg: "#161520",
     card: "#211f32",
@@ -396,6 +483,7 @@ const APP_THEMES = [
     id: "solarized-amber",
     name: "Solarized Amber",
     tagline: "Dourado Executivo Nobre",
+    mode: "dark",
     primary: "#f59e0b",
     bg: "#120b04",
     card: "#221508",
@@ -405,6 +493,7 @@ const APP_THEMES = [
     id: "crimson-protocol",
     name: "Crimson Protocol",
     tagline: "Red Alert Tático",
+    mode: "dark",
     primary: "#ef4444",
     bg: "#120507",
     card: "#220b0f",
@@ -414,6 +503,7 @@ const APP_THEMES = [
     id: "nordic-frost",
     name: "Nordic Frost",
     tagline: "Azul Glaciar Ártico",
+    mode: "dark",
     primary: "#38bdf8",
     bg: "#060e18",
     card: "#102138",
@@ -423,6 +513,7 @@ const APP_THEMES = [
     id: "sunset-synthwave",
     name: "Sunset Synthwave",
     tagline: "Retro 80s Sunset Glow",
+    mode: "dark",
     primary: "#f97316",
     bg: "#100b1a",
     card: "#201635",
@@ -432,6 +523,7 @@ const APP_THEMES = [
     id: "oled-black",
     name: "OLED Stealth Black",
     tagline: "Preto Absoluto Puro",
+    mode: "dark",
     primary: "#ffffff",
     bg: "#000000",
     card: "#0a0a0a",
@@ -441,6 +533,7 @@ const APP_THEMES = [
     id: "moss-forest",
     name: "Moss & Forest",
     tagline: "Verde Orgânico Musgo",
+    mode: "dark",
     primary: "#84cc16",
     bg: "#071008",
     card: "#132515",
@@ -450,6 +543,7 @@ const APP_THEMES = [
     id: "royal-sapphire",
     name: "Royal Sapphire",
     tagline: "Azul Safira & Índigo de Luxo",
+    mode: "dark",
     primary: "#3b82f6",
     bg: "#050b1a",
     card: "#101c3c",
@@ -459,12 +553,15 @@ const APP_THEMES = [
     id: "cyberpunk-yellow",
     name: "Cyberpunk 2077",
     tagline: "Amarelo Alta Tensão",
+    mode: "dark",
     primary: "#eab308",
     bg: "#101004",
     card: "#202008",
     swatches: ["#101004", "#202008", "#eab308", "#fde047"]
   }
 ];
+
+state._themeFilter = "all";
 
 function getCurrentTheme() {
   return document.documentElement.getAttribute("data-theme") || localStorage.getItem("netpulse_theme") || "cyber-cyan";
@@ -474,7 +571,17 @@ function setAppTheme(themeId, notify = true) {
   const theme = APP_THEMES.find(t => t.id === themeId);
   if (!theme) return;
 
+  const isLight = theme.mode === "light";
+
   document.documentElement.setAttribute("data-theme", themeId);
+  document.documentElement.setAttribute("data-theme-type", isLight ? "light" : "dark");
+  
+  if (isLight) {
+    document.documentElement.classList.remove("dark");
+  } else {
+    document.documentElement.classList.add("dark");
+  }
+
   try {
     localStorage.setItem("netpulse_theme", themeId);
   } catch (e) {}
@@ -498,14 +605,39 @@ function setAppTheme(themeId, notify = true) {
   }
 }
 
+function filterThemes(mode) {
+  state._themeFilter = mode;
+  
+  const pills = document.querySelectorAll(".theme-mode-pill");
+  pills.forEach(p => {
+    p.classList.remove("active", "bg-slate-800", "text-white");
+    p.classList.add("text-slate-400");
+  });
+  
+  const activeBtn = document.getElementById(`theme-tab-${mode}`);
+  if (activeBtn) {
+    activeBtn.classList.add("active", "bg-slate-800", "text-white");
+    activeBtn.classList.remove("text-slate-400");
+  }
+  
+  renderThemesGrid();
+}
+
 function renderThemesGrid() {
   const container = document.getElementById("themes-grid");
   if (!container) return;
 
   const currentTheme = getCurrentTheme();
+  const filter = state._themeFilter || "all";
 
-  container.innerHTML = APP_THEMES.map(theme => {
+  const visibleThemes = APP_THEMES.filter(t => {
+    if (filter === "all") return true;
+    return t.mode === filter;
+  });
+
+  container.innerHTML = visibleThemes.map(theme => {
     const isSelected = (theme.id === currentTheme);
+    const isLight = theme.mode === "light";
     return `
       <div onclick="setAppTheme('${theme.id}')" 
         class="theme-card relative p-3.5 rounded-2xl cursor-pointer transition-all duration-200 border flex flex-col justify-between ${
@@ -514,20 +646,26 @@ function renderThemesGrid() {
             : 'bg-slate-950/70 border-slate-800 hover:border-slate-700 hover:bg-slate-900/60'
         }">
         
-        <!-- Top: Swatches & Active Check -->
+        <!-- Top: Swatches & Mode Badge -->
         <div class="flex items-center justify-between mb-2.5">
-          <div class="flex items-center gap-1.5 p-1 rounded-xl bg-black/40 border border-white/5">
+          <div class="flex items-center gap-1.5 p-1 rounded-xl bg-black/40 border border-white/5 shadow-inner">
             ${theme.swatches.map(color => `
               <span class="w-3.5 h-3.5 rounded-full border border-white/10 shadow-sm inline-block" style="background-color: ${color};"></span>
             `).join('')}
           </div>
-          ${isSelected ? `
-            <span class="flex items-center gap-1 px-2 py-0.5 rounded-md bg-pink-500/20 text-pink-300 border border-pink-500/40 text-[10px] font-bold uppercase font-mono">
-              <i data-lucide="check" class="w-3 h-3 text-pink-400"></i> Ativo
+          
+          <div class="flex items-center gap-1.5">
+            <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-md ${
+              isLight ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30' : 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30'
+            }">
+              ${isLight ? '☀️ Claro' : '🌙 Escuro'}
             </span>
-          ` : `
-            <span class="text-[10px] text-slate-500 font-medium hover:text-slate-300">Escolher</span>
-          `}
+            ${isSelected ? `
+              <span class="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-pink-500/20 text-pink-300 border border-pink-500/40 text-[9px] font-bold uppercase font-mono">
+                <i data-lucide="check" class="w-2.5 h-2.5 text-pink-400"></i>
+              </span>
+            ` : ''}
+          </div>
         </div>
 
         <!-- Middle: Name & Tagline -->
