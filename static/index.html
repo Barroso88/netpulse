@@ -48,7 +48,7 @@
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <link rel="stylesheet" href="/styles.css?v=10.9">
+  <link rel="stylesheet" href="/styles.css?v=11.0">
 </head>
 <body class="bg-darkbg text-slate-100 min-h-screen font-sans antialiased selection:bg-cyan-500 selection:text-black">
 
@@ -1188,11 +1188,11 @@
           <div id="cleanup-stat-total" class="text-base font-extrabold font-mono text-slate-200 mt-0.5">0</div>
         </div>
         <div class="p-2 rounded-lg bg-rose-950/20 border border-rose-500/20">
-          <div class="text-[10px] text-rose-300 uppercase font-semibold">Candidatos</div>
+          <div class="text-[10px] text-rose-300 uppercase font-semibold">A Eliminar</div>
           <div id="cleanup-stat-untrusted" class="text-base font-extrabold font-mono text-rose-400 mt-0.5">0</div>
         </div>
         <div class="p-2 rounded-lg bg-emerald-950/20 border border-emerald-500/20">
-          <div class="text-[10px] text-emerald-300 uppercase font-semibold">Confiáveis (Seguros)</div>
+          <div class="text-[10px] text-emerald-300 uppercase font-semibold">Confiáveis (Protegidos)</div>
           <div id="cleanup-stat-trusted" class="text-base font-extrabold font-mono text-emerald-400 mt-0.5">0</div>
         </div>
       </div>
@@ -1201,35 +1201,24 @@
       <div class="space-y-4 text-xs">
         <div>
           <label class="block text-slate-300 font-semibold mb-1.5">Período de Inatividade a Purgar</label>
-          <select id="cleanup-days-select" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-white focus:outline-none focus:border-rose-500 cursor-pointer text-xs">
-            <option value="0">Todos os dispositivos offline atualmente (Imediato)</option>
+          <select id="cleanup-days-select" onchange="updateCleanupStats()" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-white focus:outline-none focus:border-rose-500 cursor-pointer text-xs">
+            <option value="0" selected>Todos os dispositivos offline atualmente (Imediato)</option>
+            <option value="1">Apenas offline há mais de 1 dia</option>
             <option value="7">Apenas offline há mais de 7 dias</option>
             <option value="15">Apenas offline há mais de 15 dias</option>
-            <option value="30" selected>Apenas offline há mais de 30 dias (Recomendado)</option>
+            <option value="30">Apenas offline há mais de 30 dias</option>
           </select>
         </div>
 
         <div class="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80 space-y-3">
           <label class="flex items-start gap-2.5 cursor-pointer">
-            <input type="checkbox" id="cleanup-keep-trusted" checked class="mt-0.5 rounded border-slate-700 text-cyan-500 focus:ring-cyan-500 bg-slate-950">
+            <input type="checkbox" id="cleanup-keep-trusted" onchange="updateCleanupStats()" checked class="mt-0.5 rounded border-slate-700 text-cyan-500 focus:ring-cyan-500 bg-slate-950">
             <div>
               <span class="font-semibold text-slate-200 flex items-center gap-1.5">
-                <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i> Preservar Dispositivos Confiáveis (Recomendado)
+                <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i> Preservar Dispositivos Confiáveis (Ativo)
               </span>
               <p class="text-[11px] text-slate-400 mt-0.5 leading-relaxed">
                 Garante que todos os equipamentos que marcou com o selo de confiança nunca serão eliminados.
-              </p>
-            </div>
-          </label>
-
-          <label class="flex items-start gap-2.5 cursor-pointer">
-            <input type="checkbox" id="cleanup-keep-custom-names" checked class="mt-0.5 rounded border-slate-700 text-cyan-500 focus:ring-cyan-500 bg-slate-950">
-            <div>
-              <span class="font-semibold text-slate-200 flex items-center gap-1.5">
-                <i data-lucide="tag" class="w-3.5 h-3.5 text-cyan-400"></i> Preservar Nomes Personalizados
-              </span>
-              <p class="text-[11px] text-slate-400 mt-0.5 leading-relaxed">
-                Protege equipamentos que tenham apelidos ou nomes manuais atribuídos por si.
               </p>
             </div>
           </label>
@@ -1428,6 +1417,6 @@
   <!-- Toast Notification Container -->
   <div id="toast-container" class="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 left-4 sm:left-auto z-50 flex flex-col gap-2 pointer-events-none"></div>
 
-  <script src="/app.js?v=10.9"></script>
+  <script src="/app.js?v=11.0"></script>
 </body>
 </html>

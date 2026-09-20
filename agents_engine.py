@@ -421,8 +421,8 @@ class AgentsEngine:
     def _mission_hygiene_keeper(self, now_str):
         database.log_agent_activity("hygiene_keeper", "INFO", "A verificar higiene de rede e dispositivos inativos...")
         try:
-            # Auto-purge untrusted devices inactive for > 30 days, keeping trusted and customized devices intact
-            deleted = database.cleanup_offline_devices(days=30, keep_trusted=True, keep_custom_names=True)
+            # Auto-purge untrusted devices inactive for > 30 days, keeping trusted devices intact
+            deleted = database.cleanup_offline_devices(days=30, keep_trusted=True, keep_custom_names=False)
             if deleted > 0:
                 database.log_agent_activity("hygiene_keeper", "INFO", f"Higiene concluída: {deleted} dispositivos inativos (>30 dias) foram purgados com sucesso. Confiáveis preservados.")
             else:
@@ -430,7 +430,7 @@ class AgentsEngine:
 
             stats = {
                 "last_purged_count": deleted,
-                "policy": "Preservar Confiáveis & Nomes Customizados (> 30 dias)",
+                "policy": "Preservar Confiáveis (> 30 dias)",
                 "last_run": now_str
             }
             database.update_agent_config("hygiene_keeper", last_run=now_str, stats=stats)

@@ -319,7 +319,7 @@ class NetPulseHandler(http.server.SimpleHTTPRequestHandler):
             try:
                 days = int(body_data.get("days", 0))
                 keep_trusted = bool(body_data.get("keep_trusted", True))
-                keep_custom_names = bool(body_data.get("keep_custom_names", True))
+                keep_custom_names = bool(body_data.get("keep_custom_names", False))
                 deleted_count = database.cleanup_offline_devices(
                     days=days,
                     keep_trusted=keep_trusted,

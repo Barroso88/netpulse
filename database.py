@@ -696,7 +696,7 @@ def delete_device(device_id):
     conn.close()
     return True
 
-def cleanup_offline_devices(days=0, keep_trusted=True, keep_custom_names=True):
+def cleanup_offline_devices(days=0, keep_trusted=True, keep_custom_names=False):
     """
     Purges stale offline devices from the database.
     - days: Only purge devices offline for > X days (0 = purge all offline immediately).

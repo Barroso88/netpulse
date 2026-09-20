@@ -1612,21 +1612,46 @@ function deleteDeviceFromEditModal() {
 }
 
 // Bulk Offline Device Cleanup Logic
-function openCleanupModal() {
-  const modal = document.getElementById("modal-cleanup-offline");
-  if (!modal) return;
+function updateCleanupStats() {
+  const daysVal = parseInt(document.getElementById("cleanup-days-select")?.value || "0", 10);
+  const keepTrusted = document.getElementById("cleanup-keep-trusted")?.checked ?? true;
   
-  const offlineTotal = state.devices.filter(d => d.status === "offline").length;
-  const offlineUntrusted = state.devices.filter(d => d.status === "offline" && !d.is_trusted && (!d.custom_name || !d.custom_name.trim())).length;
-  const offlineTrusted = state.devices.filter(d => d.status === "offline" && d.is_trusted).length;
+  const now = new Date().getTime();
+  
+  const offlineDevices = (state.devices || []).filter(d => d.status === "offline");
+  const offlineTotal = offlineDevices.length;
+  const trustedCount = offlineDevices.filter(d => d.is_trusted).length;
+  
+  const eligible = offlineDevices.filter(d => {
+    if (keepTrusted && d.is_trusted) return false;
+    if (daysVal > 0 && d.last_seen) {
+      const seenTime = new Date(d.last_seen.replace(" ", "T")).getTime();
+      const diffDays = (now - seenTime) / (1000 * 60 * 60 * 24);
+      if (isNaN(diffDays) || diffDays < daysVal) return false;
+    }
+    return true;
+  });
   
   const totalEl = document.getElementById("cleanup-stat-total");
   const untrustedEl = document.getElementById("cleanup-stat-untrusted");
   const trustedEl = document.getElementById("cleanup-stat-trusted");
   
   if (totalEl) totalEl.textContent = offlineTotal;
-  if (untrustedEl) untrustedEl.textContent = offlineUntrusted;
-  if (trustedEl) trustedEl.textContent = offlineTrusted;
+  if (untrustedEl) untrustedEl.textContent = eligible.length;
+  if (trustedEl) trustedEl.textContent = trustedCount;
+  
+  const submitBtn = document.getElementById("btn-submit-cleanup");
+  if (submitBtn) {
+    submitBtn.innerHTML = `<i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Executar Limpeza (${eligible.length})`;
+    if (window.lucide) lucide.createIcons();
+  }
+}
+
+function openCleanupModal() {
+  const modal = document.getElementById("modal-cleanup-offline");
+  if (!modal) return;
+  
+  updateCleanupStats();
   
   modal.classList.remove("hidden");
   if (window.lucide) lucide.createIcons();
@@ -1640,7 +1665,6 @@ function closeCleanupModal() {
 async function submitCleanupOffline() {
   const daysVal = parseInt(document.getElementById("cleanup-days-select")?.value || "0", 10);
   const keepTrusted = document.getElementById("cleanup-keep-trusted")?.checked ?? true;
-  const keepCustomNames = document.getElementById("cleanup-keep-custom-names")?.checked ?? true;
   
   const btn = document.getElementById("btn-submit-cleanup");
   const origHtml = btn ? btn.innerHTML : "";
@@ -1657,7 +1681,7 @@ async function submitCleanupOffline() {
       body: JSON.stringify({
         days: daysVal,
         keep_trusted: keepTrusted,
-        keep_custom_names: keepCustomNames
+        keep_custom_names: false
       })
     });
     const data = await res.json();
