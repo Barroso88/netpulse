@@ -65,7 +65,7 @@
     })();
   </script>
 
-  <link rel="stylesheet" href="/styles.css?v=14.0">
+  <link rel="stylesheet" href="/styles.css?v=14.1">
 </head>
 <body class="bg-darkbg text-slate-100 min-h-screen font-sans antialiased selection:bg-cyan-500 selection:text-black">
 
@@ -427,36 +427,36 @@
       <!-- Unified Inventory Control Deck (Search, Status, Sorting & Category Taxonomy) -->
       <div class="inventory-control-deck rounded-2xl p-3 sm:p-4 space-y-3.5">
         
-        <!-- Row 1: Primary Command Bar (Search, Status Segment, Sort) -->
-        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 sm:gap-3.5">
-          
-          <!-- Search Input with Glass Styling, Cyan Accent, Clear Button & Cmd+K -->
-          <div class="relative flex-1 w-full">
-            <div class="relative flex items-center">
-              <i data-lucide="search" class="w-4 h-4 absolute left-3.5 text-cyan-400/80 pointer-events-none"></i>
-              <input 
-                type="text" 
-                id="search-input" 
-                oninput="handleSearchInput(this)"
-                placeholder="Procurar por IP, MAC, Nome, Fabricante ou Porta..." 
-                class="w-full pl-10 pr-16 py-2.5 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-slate-700/90 focus:border-cyan-500/80 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 transition-all font-sans"
-              />
-              <div class="absolute right-2.5 flex items-center gap-1.5">
-                <button 
-                  id="search-clear-btn" 
-                  onclick="clearSearchInput()" 
-                  type="button"
-                  class="hidden p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
-                  title="Limpar pesquisa">
-                  <i data-lucide="x" class="w-3.5 h-3.5"></i>
-                </button>
-                <kbd class="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono text-slate-500 bg-slate-900 border border-slate-800 rounded pointer-events-none select-none">⌘K</kbd>
-              </div>
+        <!-- Row 1: Dedicated Full-Width Search Command Bar -->
+        <div class="relative w-full">
+          <div class="relative flex items-center">
+            <i data-lucide="search" class="w-4 h-4 absolute left-3.5 text-cyan-400/80 pointer-events-none"></i>
+            <input 
+              type="text" 
+              id="search-input" 
+              oninput="handleSearchInput(this)"
+              placeholder="Procurar por IP, MAC, Nome, Fabricante ou Porta..." 
+              class="w-full pl-10 pr-16 py-2.5 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-slate-700/90 focus:border-cyan-500/80 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 transition-all font-sans shadow-inner"
+            />
+            <div class="absolute right-2.5 flex items-center gap-1.5">
+              <button 
+                id="search-clear-btn" 
+                onclick="clearSearchInput()" 
+                type="button"
+                class="hidden p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+                title="Limpar pesquisa">
+                <i data-lucide="x" class="w-3.5 h-3.5"></i>
+              </button>
+              <kbd class="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono text-slate-500 bg-slate-900 border border-slate-800 rounded pointer-events-none select-none">⌘K</kbd>
             </div>
           </div>
+        </div>
 
-          <!-- Controls: Status Segmented Switcher & Sort Dropdown -->
-          <div class="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap justify-between lg:justify-end flex-shrink-0">
+        <!-- Row 2: Secondary Control Bar (Status, Connection Type, Sort, Clean Offline) -->
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 sm:gap-3.5">
+          
+          <!-- Left: Status & Connection Segmented Switchers -->
+          <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
             
             <!-- Status Segmented Switcher (Apple / Linear style) -->
             <div class="status-segment-group flex items-center p-1 rounded-xl bg-slate-950/90 border border-slate-800/90 text-xs shadow-inner">
@@ -518,7 +518,10 @@
                 <span id="badge-conn-ethernet" class="font-mono text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-slate-800/90 text-blue-400">0</span>
               </button>
             </div>
+          </div>
 
+          <!-- Right: Sort Dropdown & Clean Offline Devices Button -->
+          <div class="flex items-center gap-2 sm:gap-2.5 flex-wrap sm:flex-nowrap justify-between sm:justify-end">
             <!-- Sort Dropdown with Executive Custom Wrapper -->
             <div class="relative flex items-center">
               <div class="absolute left-3 pointer-events-none text-slate-400 flex items-center">
@@ -550,7 +553,6 @@
               <i data-lucide="trash-2" class="w-3.5 h-3.5 text-rose-400"></i>
               <span class="hidden sm:inline">Limpar Offline</span>
             </button>
-
           </div>
         </div>
 
@@ -1509,6 +1511,6 @@
   <!-- Toast Notification Container -->
   <div id="toast-container" class="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 left-4 sm:left-auto z-50 flex flex-col gap-2 pointer-events-none"></div>
 
-  <script src="/app.js?v=14.0"></script>
+  <script src="/app.js?v=14.1"></script>
 </body>
 </html>
